@@ -302,6 +302,22 @@ fun SettingsScreen(
                 onCheckedChange = { viewModel.setFilterLoopTitle(it) }
             )
         }
+        item {
+            var showKwDialog by remember { mutableStateOf(false) }
+            var kwText by remember { mutableStateOf(uiState.filterKeywords) }
+            SettingsItem(
+                icon = Icons.Outlined.Block,
+                title = "自定义过滤词",
+                subtitle = if (uiState.filterKeywords.isBlank()) "点击设置，用|分隔多个词" else uiState.filterKeywords,
+                onClick = { kwText = uiState.filterKeywords; showKwDialog = true }
+            )
+            if (showKwDialog) {
+                AlertDialog(onDismissRequest = { showKwDialog = false }, title = { Text("自定义过滤词") },
+                    text = { OutlinedTextField(value = kwText, onValueChange = { kwText = it }, label = { Text("过滤词（|分隔）") }, modifier = Modifier.fillMaxWidth()) },
+                    confirmButton = { TextButton(onClick = { viewModel.setFilterKeywords(kwText); showKwDialog = false }) { Text("确定") } },
+                    dismissButton = { TextButton(onClick = { showKwDialog = false }) { Text("取消") } })
+            }
+        }
 
         // ===== 关于 =====
         item {

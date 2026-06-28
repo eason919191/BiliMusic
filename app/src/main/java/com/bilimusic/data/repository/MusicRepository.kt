@@ -74,11 +74,39 @@ class MusicRepository @Inject constructor(
         musicDao.addSongToPlaylist(
             PlaylistSong(playlistId = playlistId, songId = song.id, order = count)
         )
+        // 单曲调用：计数顺带更新（只有一首歌，影响不大）
         musicDao.updatePlaylistSongCount(playlistId)
-        // 如果歌单没有封面，用第一首歌的封面
         val playlist = musicDao.getPlaylistById(playlistId)
         if (playlist != null && playlist.coverUrl == null && song.coverUrl != null) {
             musicDao.updatePlaylist(playlist.copy(coverUrl = song.coverUrl))
+        }
+    }
+
+    /** 只添加关联不更新计数，供批量方法内部使用 */
+    private suspend fun addSongToPlaylistNoCount(playlistId: String, song: Music) {
+        musicDao.insertMusic(song)
+        val count = musicDao.getSongsInPlaylistOnce(playlistId).size
+        musicDao.addSongToPlaylist(
+            PlaylistSong(playlistId = playlistId, songId = song.id, order = count)
+        )
+    }
+
+    /** 批量添加歌曲到歌单 */
+    suspend fun batchAddSongsToPlaylist(playlistId: String, songs: List<Music>) {
+        if (songs.isEmpty()) return
+        songs.forEach { song -> musicDao.insertMusic(song) }
+        val existingCount = musicDao.getSongsInPlaylistOnce(playlistId).size
+        val playlistSongs = songs.mapIndexed { i, song ->
+            PlaylistSong(playlistId = playlistId, songId = song.id, order = existingCount + i)
+        }
+        musicDao.addSongsToPlaylist(playlistSongs)
+        musicDao.updatePlaylistSongCount(playlistId)
+        val playlist = musicDao.getPlaylistById(playlistId)
+        if (playlist != null && playlist.coverUrl == null) {
+            val firstCover = songs.firstOrNull()?.coverUrl
+            if (firstCover != null) {
+                musicDao.updatePlaylist(playlist.copy(coverUrl = firstCover))
+            }
         }
     }
 
@@ -91,17 +119,54 @@ class MusicRepository @Inject constructor(
         return musicDao.isSongInPlaylist(playlistId, songId) > 0
     }
 
-    suspend fun copySongToPlaylist(fromPlaylistId: String, toPlaylistId: String, songId: String) {
-        val song = musicDao.getMusicById(songId) ?: return
+    suspend fun copySongToPlaylist(fromPlaylistId: String, toPlaylistId: String, songId: String): Boolean {
+        val song = musicDao.getMusicById(songId) ?: run {
+            android.util.Log.w("MusicRepo", "copySongToPlaylist: song not found in music table: $songId")
+            return false
+        }
+        if (musicDao.isSongInPlaylist(toPlaylistId, songId) > 0) return false
         val countInTarget = musicDao.getSongsInPlaylistOnce(toPlaylistId).size
         musicDao.addSongToPlaylist(PlaylistSong(playlistId = toPlaylistId, songId = songId, order = countInTarget))
         musicDao.updatePlaylistSongCount(toPlaylistId)
+        return true
     }
 
-    suspend fun moveSongToPlaylist(fromPlaylistId: String, toPlaylistId: String, songId: String) {
-        copySongToPlaylist(fromPlaylistId, toPlaylistId, songId)
-        musicDao.removeSongFromPlaylistById(fromPlaylistId, songId)
-        musicDao.updatePlaylistSongCount(fromPlaylistId)
+    suspend fun batchCopySongsToPlaylist(fromPlaylistId: String, toPlaylistId: String, songIds: List<String>): Int {
+        if (songIds.isEmpty()) return 0
+        val existingIds = musicDao.getSongsInPlaylistOnce(toPlaylistId).map { it.id }.toSet()
+        val newIds = songIds.filter { it !in existingIds }
+        if (newIds.isEmpty()) return 0
+        val countInTarget = musicDao.getSongsInPlaylistOnce(toPlaylistId).size
+        val songs = newIds.mapIndexed { i, id ->
+            PlaylistSong(playlistId = toPlaylistId, songId = id, order = countInTarget + i)
+        }
+        musicDao.addSongsToPlaylist(songs)
+        musicDao.updatePlaylistSongCount(toPlaylistId)
+        return newIds.size
+    }
+
+    suspend fun batchMoveSongsToPlaylist(fromPlaylistId: String, toPlaylistId: String, songIds: List<String>): Int {
+        val copied = batchCopySongsToPlaylist(fromPlaylistId, toPlaylistId, songIds)
+        if (copied > 0) {
+            musicDao.removeSongsFromPlaylistByIds(fromPlaylistId, songIds)
+            musicDao.updatePlaylistSongCount(fromPlaylistId)
+        }
+        return copied
+    }
+
+    suspend fun batchRemoveSongs(playlistId: String, songIds: List<String>) {
+        if (songIds.isEmpty()) return
+        musicDao.removeSongsFromPlaylistByIds(playlistId, songIds)
+        musicDao.updatePlaylistSongCount(playlistId)
+    }
+
+    suspend fun moveSongToPlaylist(fromPlaylistId: String, toPlaylistId: String, songId: String): Boolean {
+        val copied = copySongToPlaylist(fromPlaylistId, toPlaylistId, songId)
+        if (copied) {
+            musicDao.removeSongFromPlaylistById(fromPlaylistId, songId)
+            musicDao.updatePlaylistSongCount(fromPlaylistId)
+        }
+        return copied
     }
 
     suspend fun reorderSong(playlistId: String, songId: String, newOrder: Int) {

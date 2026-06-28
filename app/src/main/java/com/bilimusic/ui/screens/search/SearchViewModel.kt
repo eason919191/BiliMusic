@@ -153,16 +153,23 @@ class SearchViewModel @Inject constructor(
     var filterLongVideos = true
     var filterLoopTitle = true
     var searchSort = "totalrank"
+    var filterKeywords = ""
 
     init {
         viewModelScope.launch { preferences.searchSort.collect { searchSort = it } }
         viewModelScope.launch { preferences.filterLongVideos.collect { filterLongVideos = it } }
         viewModelScope.launch { preferences.filterLoopTitle.collect { filterLoopTitle = it } }
+        viewModelScope.launch { preferences.filterKeywords.collect { filterKeywords = it } }
     }
 
     private fun shouldFilter(video: BilibiliVideo): Boolean {
-        if (filterLongVideos && video.duration > 600) return true // 10分钟以上
+        if (filterLongVideos && video.duration > 600) return true
         if (filterLoopTitle && video.title.contains("循环")) return true
+        if (filterKeywords.isNotBlank()) {
+            filterKeywords.split("|").forEach { kw ->
+                if (kw.isNotBlank() && video.title.contains(kw.trim(), ignoreCase = true)) return true
+            }
+        }
         return false
     }
 

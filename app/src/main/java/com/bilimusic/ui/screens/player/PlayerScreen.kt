@@ -40,6 +40,7 @@ fun PlayerScreen(
     onMinimize: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
     val playlistViewModel: com.bilimusic.ui.screens.playlist.PlaylistViewModel = hiltViewModel()
     val playlistUiState by playlistViewModel.uiState.collectAsState()
     var showPlaylistDialog by remember { mutableStateOf(false) }
@@ -96,7 +97,22 @@ fun PlayerScreen(
                 onPlaySongAt = { viewModel.playSongAt(it) },
                 onRemoveFromPlaylist = { viewModel.removeFromPlaylist(it) },
                 onAddToPlaylist = { showPlaylistDialog = true },
-                onToggleLyrics = { viewModel.toggleLyrics() }
+                onToggleLyrics = { viewModel.toggleLyrics() },
+                onDownload = { viewModel.downloadCurrentSong() },
+                onShare = {
+                    val text = viewModel.getCurrentSongShareText()
+                    if (text.isNotBlank()) {
+                        context.startActivity(
+                            android.content.Intent.createChooser(
+                                android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(android.content.Intent.EXTRA_TEXT, text)
+                                },
+                                "分享"
+                            )
+                        )
+                    }
+                }
             )
         }
     }
@@ -114,7 +130,9 @@ private fun PlayerContent(
     onPlaySongAt: (Int) -> Unit,
     onRemoveFromPlaylist: (Int) -> Unit,
     onAddToPlaylist: () -> Unit = {},
-    onToggleLyrics: () -> Unit = {}
+    onToggleLyrics: () -> Unit = {},
+    onDownload: () -> Unit = {},
+    onShare: () -> Unit = {}
 ) {
     val song = uiState.currentSong ?: return
     var showPlaylist by remember { mutableStateOf(false) }
@@ -169,6 +187,10 @@ private fun PlayerContent(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
                 Row {
+                    // 分享按钮
+                    IconButton(onClick = onShare) {
+                        Icon(Icons.Filled.Share, contentDescription = "分享", tint = MaterialTheme.colorScheme.onSurface)
+                    }
                     // 歌词按钮
                     IconButton(onClick = { onToggleLyrics() }) {
                         Icon(
@@ -293,8 +315,8 @@ private fun PlayerContent(
                 IconButton(onClick = onNext) {
                     Icon(Icons.Filled.SkipNext, "下一首", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(40.dp))
                 }
-                IconButton(onClick = {}) {
-                    Icon(Icons.Outlined.VolumeUp, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.size(28.dp))
+                IconButton(onClick = onDownload) {
+                    Icon(Icons.Filled.Download, "下载", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.size(28.dp))
                 }
             }
 

@@ -28,23 +28,13 @@ fun PixelProgressBar(
     progress: Float,
     onProgressChange: (Float) -> Unit,
     onProgressChangeFinished: () -> Unit,
-    style: ProgressBarStyle = ProgressBarStyle.ROUNDED,
+    style: ProgressBarStyle = ProgressBarStyle.LINEAR,
     modifier: Modifier = Modifier,
     activeColor: Color = MaterialTheme.colorScheme.primary,
     inactiveColor: Color = MaterialTheme.colorScheme.surfaceVariant
 ) {
     when (style) {
-        ProgressBarStyle.ROUNDED -> {
-            PixelStyleProgress(
-                progress = progress,
-                onProgressChange = onProgressChange,
-                onProgressChangeFinished = onProgressChangeFinished,
-                activeColor = activeColor,
-                inactiveColor = inactiveColor,
-                modifier = modifier
-            )
-        }
-        ProgressBarStyle.ROUNDED -> {
+        ProgressBarStyle.LINEAR -> {
             Slider(
                 value = progress,
                 onValueChange = onProgressChange,
@@ -54,26 +44,6 @@ fun PixelProgressBar(
                     activeTrackColor = activeColor,
                     inactiveTrackColor = inactiveColor
                 ),
-                modifier = modifier
-            )
-        }
-        ProgressBarStyle.ROUNDED -> {
-            RoundedStyleProgress(
-                progress = progress,
-                onProgressChange = onProgressChange,
-                onProgressChangeFinished = onProgressChangeFinished,
-                activeColor = activeColor,
-                inactiveColor = inactiveColor,
-                modifier = modifier
-            )
-        }
-        ProgressBarStyle.DOT -> {
-            DotStyleProgress(
-                progress = progress,
-                onProgressChange = onProgressChange,
-                onProgressChangeFinished = onProgressChangeFinished,
-                activeColor = activeColor,
-                inactiveColor = inactiveColor,
                 modifier = modifier
             )
         }

@@ -1,3 +1,6 @@
+# 保留所有 app 自己的类，不乱混淆
+-keep class com.bilimusic.** { *; }
+
 # Retrofit
 -keepattributes Signature, InnerClasses, EnclosingMethod
 -keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
@@ -15,7 +18,6 @@
 -keepattributes Signature
 -keepattributes *Annotation*
 -dontwarn sun.misc.**
--keep class com.bilimusic.data.model.** { *; }
 
 # Room
 -keep class * extends androidx.room.RoomDatabase

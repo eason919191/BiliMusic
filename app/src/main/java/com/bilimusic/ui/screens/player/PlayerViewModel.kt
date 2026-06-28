@@ -2,8 +2,10 @@ package com.bilimusic.ui.screens.player
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bilimusic.data.api.BilibiliApiClient
 import com.bilimusic.data.model.*
 import com.bilimusic.data.preferences.AppPreferences
+import com.bilimusic.data.repository.MusicRepository
 import com.bilimusic.player.MusicPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -18,7 +20,7 @@ data class PlayerUiState(
     val playMode: PlayMode = PlayMode.LOOP,
     val playlist: List<Music> = emptyList(),
     val blurDegree: Float = 25f,
-    val progressBarStyle: ProgressBarStyle = ProgressBarStyle.ROUNDED,
+    val progressBarStyle: ProgressBarStyle = ProgressBarStyle.LINEAR,
     val playerBgPureColor: Boolean = false,
     val isMinimized: Boolean = false,
     val playerError: String? = null,
@@ -159,6 +161,36 @@ class PlayerViewModel @Inject constructor(
                 android.util.Log.e("PlayerVM", "add to playlist failed", e)
             }
         }
+    }
+
+    fun downloadCurrentSong() {
+        val song = musicPlayer.currentSong.value ?: return
+        viewModelScope.launch {
+            try {
+                var audioUrl = song.url
+                if (song.bvid != null && song.bvid.isNotBlank()) {
+                    val detail = BilibiliApiClient.getVideoDetail(song.bvid)
+                    val cid = detail?.cid ?: 0L
+                    if (cid > 0) {
+                        val dashUrl = BilibiliApiClient.getDownloadAudioUrl(song.bvid, cid)
+                        if (dashUrl != null) audioUrl = dashUrl
+                    }
+                }
+                val task = DownloadTask(
+                    id = song.id, musicId = song.id,
+                    title = song.title, artist = song.artist,
+                    coverUrl = song.coverUrl,
+                    url = audioUrl ?: song.localPath ?: ""
+                )
+                repository.addDownloadTask(task)
+                repository.updateDownloadTaskStatus(task.id, DownloadStatus.PENDING)
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun getCurrentSongShareText(): String {
+        val song = musicPlayer.currentSong.value ?: return ""
+        return "【${song.title}】- ${song.artist}\nhttps://www.bilibili.com/video/${song.bvid ?: ""}"
     }
 
     fun clearError() {

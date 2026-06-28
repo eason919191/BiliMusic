@@ -10,6 +10,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -32,11 +33,17 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
+import kotlin.math.roundToInt
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bilimusic.ui.components.BiliAsyncImage
 import com.bilimusic.data.model.Music
+import android.widget.Toast
 import com.bilimusic.data.model.Playlist
 
 @Composable
@@ -44,8 +51,17 @@ fun PlaylistScreen(
     viewModel: PlaylistViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val selectedPlaylistId = uiState.selectedPlaylistId
+
+    // 显示错误/同步结果
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+            viewModel.clearError()
+        }
+    }
 
     // Back from detail to playlist list
     BackHandler(enabled = uiState.isShowingDetail) {
@@ -84,9 +100,15 @@ fun PlaylistScreen(
                 onExitSelect = { viewModel.exitSelectionMode() },
                 onCopyToPlaylist = { viewModel.showCopyDialog(true) },
                 onMoveToPlaylist = { viewModel.showCopyDialog(false) },
+                onBatchRemove = { viewModel.batchRemoveSongs() },
+                onBatchDownload = { viewModel.batchDownloadSongs() },
                 onMoveUp = { viewModel.moveSong(it, it - 1) },
                 onMoveDown = { viewModel.moveSong(it, it + 1) },
-                onDownloadSong = { songId -> viewModel.downloadSong(songId) }
+                onDownloadSong = { songId -> viewModel.downloadSong(songId) },
+                onCommitOrder = { orderedIds -> viewModel.commitSongOrder(pid, orderedIds) },
+                onSync = { viewModel.showSyncDialog() },
+                isSyncing = uiState.isSyncing,
+                playlistFavoriteFolderId = playlist?.favoriteFolderId
             )
         }
     }
@@ -153,6 +175,38 @@ fun PlaylistScreen(
                 }
             },
             confirmButton = { TextButton(onClick = { viewModel.hideTargetDialog() }) { Text("取消") } }
+        )
+    }
+
+    // 同步方向选择对话框
+    if (uiState.showSyncDialog && selectedPlaylistId != null) {
+        val pid = selectedPlaylistId!!
+        AlertDialog(
+            onDismissRequest = { viewModel.hideSyncDialog() },
+            title = { Text("同步B站收藏夹") },
+            text = {
+                Column {
+                    ListItem(
+                        headlineContent = { Text("从B站拉取") },
+                        supportingContent = { Text("将收藏夹中的新视频添加到本歌单") },
+                        leadingContent = { Icon(Icons.Filled.CloudDownload, null) },
+                        modifier = Modifier.clickable {
+                            viewModel.hideSyncDialog()
+                            viewModel.syncPlaylistWithBilibili(pid)
+                        }
+                    )
+                    ListItem(
+                        headlineContent = { Text("推送到B站") },
+                        supportingContent = { Text("将歌单中有BV号的新歌曲添加到收藏夹") },
+                        leadingContent = { Icon(Icons.Filled.CloudUpload, null) },
+                        modifier = Modifier.clickable {
+                            viewModel.hideSyncDialog()
+                            viewModel.pushToBilibili(pid)
+                        }
+                    )
+                }
+            },
+            confirmButton = { TextButton(onClick = { viewModel.hideSyncDialog() }) { Text("取消") } }
         )
     }
 }
@@ -335,16 +389,63 @@ private fun PlaylistDetailScreen(
     onDeletePlaylist: () -> Unit,
     onToggleSelect: (String) -> Unit = {},
     onLongPress: (String) -> Unit = {},
+    onEnterSelect: () -> Unit = {},
     onSelectAll: () -> Unit = {},
     onExitSelect: () -> Unit = {},
     onCopyToPlaylist: () -> Unit = {},
     onMoveToPlaylist: () -> Unit = {},
+    onBatchRemove: () -> Unit = {},
+    onBatchDownload: () -> Unit = {},
     onMoveUp: (Int) -> Unit = {},
     onMoveDown: (Int) -> Unit = {},
-    onDownloadSong: (String) -> Unit = {}
+    onDownloadSong: (String) -> Unit = {},
+    onCommitOrder: (List<String>) -> Unit = {},
+    onSync: () -> Unit = {},
+    isSyncing: Boolean = false,
+    playlistFavoriteFolderId: Long? = null
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
+
+    // 本地排序缓存：用 songId 列表存储顺序，在 composition 中同步初始化，消除 LaunchedEffect 异步滞后导致的闪动
+    var localOrderById by remember { mutableStateOf<List<String>?>(null) }
+
+    // 同步初始化：进入选择模式时，同帧从 songs 读取并初始化排序（无 LaunchedEffect 的 1 帧滞后）
+    if (isSelecting && localOrderById == null) {
+        localOrderById = songs.map { it.id }
+    }
+    // 退出选择模式时清空
+    if (!isSelecting && localOrderById != null) {
+        localOrderById = null
+    }
+
+    // 退出选择模式时提交本地排序
+    val handleExitSelection = {
+        localOrderById?.let { onCommitOrder(it) }
+        onExitSelect()
+    }
+
+    // ===== 拖拽排序状态 =====
+    var draggedSongId by remember { mutableStateOf<String?>(null) }
+    var dragOffsetY by remember { mutableStateOf(0f) }
+    val lazyListState = rememberLazyListState()
+    // rememberUpdatedState：pointerInput 内部读到的始终是最新值（因为 pointerInput 在首次 composition 时捕获引用）
+    val latestLocalOrderById by rememberUpdatedState(localOrderById)
+    val latestLazyListState by rememberUpdatedState(lazyListState)
+
+    // 拖拽靠近列表边缘时自动滚动
+    LaunchedEffect(draggedSongId, dragOffsetY) {
+        val id = draggedSongId ?: return@LaunchedEffect
+        val info = latestLazyListState.layoutInfo
+        val item = info.visibleItemsInfo.find { it.key == id } ?: return@LaunchedEffect
+        val draggedTop = item.offset + dragOffsetY.roundToInt()
+        val threshold = item.size
+        if (draggedTop < info.viewportStartOffset + threshold) {
+            latestLazyListState.dispatchRawDelta(-item.size.toFloat())
+        } else if (draggedTop + item.size > info.viewportEndOffset - threshold) {
+            latestLazyListState.dispatchRawDelta(item.size.toFloat())
+        }
+    }
 
     // 获取第一首歌曲封面作为歌单封面
     val playlistCover = songs.firstOrNull()?.coverUrl
@@ -357,7 +458,9 @@ private fun PlaylistDetailScreen(
                     TextButton(onClick = onSelectAll) { Text("全选") }
                     IconButton(onClick = onCopyToPlaylist) { Icon(Icons.Filled.ContentCopy, "复制到") }
                     IconButton(onClick = onMoveToPlaylist) { Icon(Icons.Filled.ContentPasteGo, "移动到") }
-                    IconButton(onClick = onExitSelect) { Icon(Icons.Filled.Close, "取消") }
+                    IconButton(onClick = onBatchDownload) { Icon(Icons.Filled.Download, "下载") }
+                    IconButton(onClick = onBatchRemove) { Icon(Icons.Filled.Delete, "移除", tint = MaterialTheme.colorScheme.error) }
+                    IconButton(onClick = handleExitSelection) { Icon(Icons.Filled.Close, "取消") }
                 }
             }
         }
@@ -384,6 +487,22 @@ private fun PlaylistDetailScreen(
                     IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, "返回", tint = androidx.compose.ui.graphics.Color.White) }
                     Row {
                         IconButton(onClick = onPlayAll) { Icon(Icons.Filled.PlayArrow, "播放全部", tint = androidx.compose.ui.graphics.Color.White) }
+                        if (playlistFavoriteFolderId != null) {
+                            IconButton(
+                                onClick = onSync,
+                                enabled = !isSyncing
+                            ) {
+                                if (isSyncing) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = androidx.compose.ui.graphics.Color.White
+                                    )
+                                } else {
+                                    Icon(Icons.Filled.Sync, "同步收藏夹", tint = androidx.compose.ui.graphics.Color.White)
+                                }
+                            }
+                        }
                         IconButton(onClick = { showDeleteConfirm = true }) { Icon(Icons.Filled.Delete, "删除", tint = androidx.compose.ui.graphics.Color.White) }
                     }
                 }
@@ -392,7 +511,7 @@ private fun PlaylistDetailScreen(
             // 选择模式下的简单顶栏
             TopAppBar(
                 title = { Text("") },
-                navigationIcon = { IconButton(onClick = onExitSelect) { Icon(Icons.Filled.Close, "返回") } }
+                navigationIcon = { IconButton(onClick = handleExitSelection) { Icon(Icons.Filled.Close, "返回") } }
             )
         }
 
@@ -401,8 +520,15 @@ private fun PlaylistDetailScreen(
                 Text("歌单为空", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                itemsIndexed(songs, key = { _, s -> s.id }) { index, song ->
+            // 从 localOrderById 和 songs 派生显示列表：用 songMap 做映射，保证 songs 数据变更时也能正确反映
+            val displaySongs: List<Music> = if (isSelecting && localOrderById != null) {
+                val songMap = songs.associateBy { it.id }
+                localOrderById!!.mapNotNull { songMap[it] }
+            } else {
+                songs
+            }
+            LazyColumn(modifier = Modifier.fillMaxSize(), state = lazyListState) {
+                itemsIndexed(displaySongs, key = { _, s -> s.id }) { index, song ->
                     val isChecked = selectedSongIds.contains(song.id)
                     ListItem(
                         headlineContent = { Text(song.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -414,10 +540,11 @@ private fun PlaylistDetailScreen(
                         },
                         trailingContent = {
                             if (isSelecting) {
-                                Row {
-                                    if (index > 0) IconButton(onClick = { onMoveUp(index) }) { Icon(Icons.Filled.KeyboardArrowUp, "上移") }
-                                    if (index < songs.lastIndex) IconButton(onClick = { onMoveDown(index) }) { Icon(Icons.Filled.KeyboardArrowDown, "下移") }
-                                }
+                                Icon(
+                                    Icons.Filled.DragHandle,
+                                    contentDescription = "拖动排序",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
                             } else {
                                 var showMenu by remember { mutableStateOf(false) }
                                 Row {
@@ -426,7 +553,11 @@ private fun PlaylistDetailScreen(
                                     Box {
                                         IconButton(onClick = { showMenu = true }) { Icon(Icons.Filled.MoreVert, "更多", Modifier.size(18.dp)) }
                                         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                                            DropdownMenuItem(text = { Text("添加到歌单") }, onClick = { showMenu = false; onCopyToPlaylist() }, leadingIcon = { Icon(Icons.Filled.PlaylistAdd, null) })
+                                            DropdownMenuItem(text = { Text("添加到歌单") }, onClick = {
+                                                showMenu = false
+                                                onToggleSelect(song.id)
+                                                onCopyToPlaylist()
+                                            }, leadingIcon = { Icon(Icons.Filled.PlaylistAdd, null) })
                                             DropdownMenuItem(text = { Text("在B站App中打开") }, onClick = {
                                                 showMenu = false
                                                 try {
@@ -450,9 +581,60 @@ private fun PlaylistDetailScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.clickable(
-                            onClick = { if (isSelecting) onToggleSelect(song.id) else onPlaySong(index) }
-                        )
+                        modifier = if (isSelecting) {
+                                // 选择模式：长按拖拽排序 + 点击勾选
+                                Modifier
+                                    .zIndex(if (draggedSongId == song.id) 1f else 0f)
+                                    .offset { IntOffset(0, if (draggedSongId == song.id) dragOffsetY.roundToInt() else 0) }
+                                    .pointerInput(song.id) {
+                                        detectDragGesturesAfterLongPress(
+                                            onDragStart = {
+                                                draggedSongId = song.id
+                                                dragOffsetY = 0f
+                                            },
+                                            onDrag = { change, dragAmount ->
+                                                change.consume()
+                                                dragOffsetY += dragAmount.y
+
+                                                val order = latestLocalOrderById ?: return@detectDragGesturesAfterLongPress
+                                                val curIdx = order.indexOf(song.id)
+                                                if (curIdx < 0) return@detectDragGesturesAfterLongPress
+
+                                                val itemInfo = latestLazyListState.layoutInfo
+                                                    .visibleItemsInfo.find { it.key == song.id }
+                                                val itemH = itemInfo?.size?.toFloat() ?: return@detectDragGesturesAfterLongPress
+                                                if (itemH <= 0f) return@detectDragGesturesAfterLongPress
+
+                                                val delta = (dragOffsetY / itemH).roundToInt()
+                                                val target = (curIdx + delta).coerceIn(0, order.lastIndex)
+
+                                                if (target != curIdx) {
+                                                    val newOrder = order.toMutableList()
+                                                    val moved = newOrder.removeAt(curIdx)
+                                                    newOrder.add(target, moved)
+                                                    localOrderById = newOrder
+                                                    dragOffsetY -= delta * itemH
+                                                }
+                                            },
+                                            onDragEnd = {
+                                                draggedSongId = null
+                                                dragOffsetY = 0f
+                                            },
+                                            onDragCancel = {
+                                                draggedSongId = null
+                                                dragOffsetY = 0f
+                                            }
+                                        )
+                                    }
+                                    .clickable { onToggleSelect(song.id) }
+                            } else {
+                                // 普通模式：点击播放 + 长按进入多选
+                                Modifier
+                                    .combinedClickable(
+                                        onClick = { onPlaySong(index) },
+                                        onLongClick = { onLongPress(song.id) }
+                                    )
+                            }
                     )
                 }
             }

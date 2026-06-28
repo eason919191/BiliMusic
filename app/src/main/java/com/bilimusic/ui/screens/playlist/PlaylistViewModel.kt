@@ -6,6 +6,7 @@ import com.bilimusic.data.api.BilibiliApiClient
 import com.bilimusic.data.model.*
 import com.bilimusic.data.repository.MusicRepository
 import com.bilimusic.player.MusicPlayer
+import com.bilimusic.data.preferences.AppPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -26,13 +27,17 @@ data class PlaylistUiState(
     val selectedSongIds: Set<String> = emptySet(),
     // Copy/Move target
     val showTargetPlaylistDialog: Boolean = false,
-    var isCopyMode: Boolean = true
+    var isCopyMode: Boolean = true,
+    // 同步 B站收藏夹
+    val isSyncing: Boolean = false,
+    val showSyncDialog: Boolean = false
 )
 
 @HiltViewModel
 class PlaylistViewModel @Inject constructor(
     private val repository: MusicRepository,
-    private val musicPlayer: MusicPlayer
+    private val musicPlayer: MusicPlayer,
+    private val preferences: AppPreferences
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlaylistUiState())
@@ -41,8 +46,6 @@ class PlaylistViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             try {
-                // 一次性修复所有歌单计数
-                repository.fixAllPlaylistCounts()
                 repository.getAllPlaylists().collect { playlists ->
                     _uiState.update { it.copy(playlists = playlists) }
                 }
@@ -132,9 +135,9 @@ class PlaylistViewModel @Inject constructor(
                 val target = songs[idx]
                 // 确保当前歌曲有音频URL
                 if (target.url == null && target.localPath == null && target.bvid != null) {
-                    val detail = com.bilimusic.data.api.BilibiliApiClient.getVideoDetail(target.bvid)
+                    val detail = BilibiliApiClient.getVideoDetail(target.bvid)
                     if (detail != null) {
-                        val url = com.bilimusic.data.api.BilibiliApiClient.getAudioUrl(target.bvid, detail.cid)
+                        val url = BilibiliApiClient.getAudioUrl(target.bvid, detail.cid)
                         if (url != null) {
                             val updated = target.copy(url = url)
                             repository.saveMusic(updated)
@@ -283,5 +286,124 @@ class PlaylistViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null, errorTitle = null) }
+    }
+
+    // ===== Batch Operations =====
+    fun batchDownloadSongs() {
+        val state = _uiState.value
+        viewModelScope.launch {
+            state.selectedSongIds.forEach { songId -> downloadSong(songId) }
+            _uiState.update {
+                it.copy(error = "已添加 ${state.selectedSongIds.size} 首到下载", isSelecting = false, selectedSongIds = emptySet())
+            }
+        }
+    }
+
+    fun batchRemoveSongs() {
+        val state = _uiState.value
+        val playlistId = state.selectedPlaylistId ?: return
+        val ids = state.selectedSongIds.toList()
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            ids.forEach { repository.removeSongFromPlaylist(playlistId, it) }
+            _uiState.update {
+                it.copy(error = "已移除 ${ids.size} 首", isSelecting = false, selectedSongIds = emptySet())
+            }
+        }
+    }
+
+    fun commitSongOrder(playlistId: String, orderedSongIds: List<String>) {
+        viewModelScope.launch {
+            orderedSongIds.forEachIndexed { index, songId ->
+                repository.reorderSong(playlistId, songId, index)
+            }
+        }
+    }
+
+    fun showSyncDialog() {
+        _uiState.update { it.copy(showSyncDialog = true) }
+    }
+
+    fun hideSyncDialog() {
+        _uiState.update { it.copy(showSyncDialog = false) }
+    }
+
+    fun syncPlaylistWithBilibili(playlistId: String) {
+        viewModelScope.launch {
+            try {
+                val playlist = repository.getPlaylistById(playlistId) ?: run {
+                    _uiState.update { it.copy(error = "歌单不存在", errorTitle = "同步失败") }
+                    return@launch
+                }
+                val folderId = playlist.favoriteFolderId ?: run {
+                    _uiState.update { it.copy(error = "该歌单未关联B站收藏夹", errorTitle = "无法同步") }
+                    return@launch
+                }
+                val cookie = preferences.bilibiliCookie.first() ?: run {
+                    _uiState.update { it.copy(error = "请先在设置中登录B站账号", errorTitle = "未登录") }
+                    return@launch
+                }
+                _uiState.update { it.copy(isSyncing = true) }
+                val videos = BilibiliApiClient.getFavoriteResources(cookie, folderId)
+                val existingIds = repository.getSongsInPlaylistOnce(playlistId).map { it.id }.toSet()
+                var addedCount = 0
+                var skippedCount = 0
+                videos.forEach { video ->
+                    if (video.bvid in existingIds) {
+                        skippedCount++
+                    } else {
+                        val music = Music(id = video.bvid, title = video.title, artist = video.author,
+                            coverUrl = video.coverUrl, duration = video.duration * 1000, bvid = video.bvid)
+                        repository.addSongToPlaylist(playlistId, music)
+                        addedCount++
+                    }
+                }
+                repository.updatePlaylistSongCount(playlistId)
+                _uiState.update {
+                    it.copy(isSyncing = false,
+                        error = "同步完成：API返回${videos.size}首，新增$addedCount 跳过$skippedCount")
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isSyncing = false, error = "同步失败: ${e.message}") }
+            }
+        }
+    }
+
+    fun pushToBilibili(playlistId: String) {
+        viewModelScope.launch {
+            try {
+                val playlist = repository.getPlaylistById(playlistId) ?: run {
+                    _uiState.update { it.copy(error = "歌单不存在") }
+                    return@launch
+                }
+                val folderId = playlist.favoriteFolderId ?: run {
+                    _uiState.update { it.copy(error = "该歌单未关联B站收藏夹") }
+                    return@launch
+                }
+                val cookie = preferences.bilibiliCookie.first() ?: run {
+                    _uiState.update { it.copy(error = "请先登录B站账号") }
+                    return@launch
+                }
+                _uiState.update { it.copy(isSyncing = true) }
+                val playlistSongs = repository.getSongsInPlaylistOnce(playlistId)
+                val songsWithBvid = playlistSongs.filter { it.bvid != null && it.bvid.isNotBlank() }
+                val favVideos = BilibiliApiClient.getFavoriteResources(cookie, folderId)
+                val favBvids = favVideos.map { it.bvid }.toSet()
+                var pushed = 0; var skipped = 0; var failed = 0
+                songsWithBvid.forEach { song ->
+                    if (song.bvid in favBvids) {
+                        skipped++
+                    } else {
+                        if (BilibiliApiClient.addVideoToFavorite(cookie, folderId, song.bvid!!)) pushed++ else failed++
+                    }
+                }
+                _uiState.update {
+                    it.copy(isSyncing = false,
+                        error = "推送完成：新增$pushed 跳过$skipped${if (failed > 0) " 失败$failed" else ""}")
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isSyncing = false, error = "推送失败: ${e.message}") }
+            }
+        }
     }
 }

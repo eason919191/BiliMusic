@@ -35,7 +35,9 @@ data class Playlist(
     val coverColor: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
-    val songCount: Int = 0
+    val songCount: Int = 0,
+    val favoriteFolderId: Long? = null,
+    val favoriteFolderName: String? = null
 )
 
 /**
@@ -139,8 +141,7 @@ enum class ThemeMode {
  * 进度条样式
  */
 enum class ProgressBarStyle(val displayName: String) {
-    ROUNDED("圆角"),
-    DOT("圆点")
+    LINEAR("线性")
 }
 
 /**

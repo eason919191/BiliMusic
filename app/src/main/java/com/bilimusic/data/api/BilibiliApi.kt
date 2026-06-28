@@ -14,8 +14,11 @@ import okhttp3.logging.HttpLoggingInterceptor
 import org.json.JSONObject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.POST
 import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
@@ -50,6 +53,19 @@ interface BilibiliApiService {
         @Query("pn") pageNum: Int = 1,
         @Query("ps") pageSize: Int = 20,
         @Query("platform") platform: String = "web"
+    ): BilibiliFavResourceResponse
+
+    // 添加视频到收藏夹
+    @FormUrlEncoded
+    @POST("x/v3/fav/resource/batch-deal")
+    suspend fun addToFavorite(
+        @Header("Cookie") cookie: String,
+        @Header("Referer") referer: String = "https://www.bilibili.com",
+        @Field("resources") resources: String,
+        @Field("add_media_ids") mediaId: Long,
+        @Field("del_media_ids") delMediaIds: String = "",
+        @Field("csrf") csrf: String,
+        @Field("platform") platform: String = "web"
     ): BilibiliFavResourceResponse
 }
 
@@ -774,7 +790,13 @@ object BilibiliApiClient {
                             )
                         }
                         allVideos.addAll(videos)
-                        hasMore = videos.size >= 20 && page < 50 // 最多50页防止死循环
+                        // 优先用 API 的 total，若不可用则回退到判断当前页数量
+                        val total = response.data?.page?.total ?: 0
+                        hasMore = if (total > 0) {
+                            allVideos.size < total
+                        } else {
+                            videos.size >= 20
+                        } && page < 50
                         page++
                     } else {
                         Log.w(TAG, "Fav resource error: code=${response.code} at page=$page")
@@ -878,6 +900,45 @@ object BilibiliApiClient {
             } catch (e: Exception) {
                 Log.e(TAG, "fetchSubtitleContent exception", e)
                 emptyList()
+            }
+        }
+    }
+
+    /**
+     * 添加视频到B站收藏夹（先通过bvid获取avid，再用avid调API）
+     */
+    suspend fun addVideoToFavorite(cookie: String, mediaId: Long, bvid: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                // 先从视频详情获取 avid（数字ID）
+                val detail = getVideoDetail(bvid)
+                val avid = detail?.aid ?: 0L
+                if (avid <= 0) {
+                    Log.w(TAG, "addVideoToFavorite: cannot get avid for $bvid")
+                    return@withContext false
+                }
+
+                // 从 cookie 中提取 bili_jct（CSRF token）
+                val csrf = cookie.split(";")
+                    .map { it.trim() }
+                    .firstOrNull { it.startsWith("bili_jct=") }
+                    ?.substringAfter("bili_jct=") ?: ""
+                if (csrf.isEmpty()) {
+                    Log.w(TAG, "addVideoToFavorite: bili_jct not found in cookie")
+                    return@withContext false
+                }
+                Log.d(TAG, "addVideoToFavorite: bvid=$bvid avid=$avid mediaId=$mediaId")
+                val response = service.addToFavorite(
+                    cookie = cookie,
+                    resources = "$avid:2",
+                    mediaId = mediaId,
+                    csrf = csrf
+                )
+                Log.d(TAG, "addVideoToFavorite: avid=$avid code=${response.code} msg=${response.message}")
+                response.code == 0
+            } catch (e: Exception) {
+                Log.e(TAG, "addVideoToFavorite exception", e)
+                false
             }
         }
     }

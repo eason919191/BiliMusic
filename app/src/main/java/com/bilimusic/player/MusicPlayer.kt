@@ -246,7 +246,29 @@ class MusicPlayer @Inject constructor(
             PlayMode.SINGLE -> idx.coerceAtLeast(0)
             else -> (idx + 1) % list.size
         }
-        playSong(list.getOrNull(nextIdx) ?: list.first())
+        val nextSong = list.getOrNull(nextIdx) ?: list.first()
+        if ((nextSong.url == null && nextSong.localPath == null) && nextSong.bvid != null) {
+            scope.launch {
+                try {
+                    val detail = com.bilimusic.data.api.BilibiliApiClient.getVideoDetail(nextSong.bvid!!)
+                    if (detail != null) {
+                        val url = com.bilimusic.data.api.BilibiliApiClient.getAudioUrl(nextSong.bvid!!, detail.cid)
+                        if (url != null) {
+                            val updated = nextSong.copy(url = url)
+                            val newList = _playlist.value.toMutableList()
+                            val realIdx = newList.indexOfFirst { it.id == nextSong.id }
+                            if (realIdx >= 0) newList[realIdx] = updated
+                            _playlist.value = newList
+                            playSong(updated)
+                            return@launch
+                        }
+                    }
+                } catch (_: Exception) {}
+                _error.value = "没有可播放的音频"
+            }
+            return
+        }
+        playSong(nextSong)
     }
 
     fun playPrevious() {

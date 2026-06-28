@@ -67,6 +67,12 @@ interface MusicDao {
     @Delete
     suspend fun removeSongFromPlaylist(playlistSong: PlaylistSong)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun addSongsToPlaylist(songs: List<PlaylistSong>)
+
+    @Query("DELETE FROM playlist_song WHERE playlistId = :playlistId AND songId IN (:songIds)")
+    suspend fun removeSongsFromPlaylistByIds(playlistId: String, songIds: List<String>)
+
     @Query("DELETE FROM playlist_song WHERE playlistId = :playlistId AND songId = :songId")
     suspend fun removeSongFromPlaylistById(playlistId: String, songId: String)
 

@@ -80,9 +80,9 @@ class AppPreferences(private val context: Context) {
 
     val progressBarStyle: Flow<ProgressBarStyle> = context.dataStore.data.map { prefs ->
         try {
-            ProgressBarStyle.valueOf(prefs[KEY_PROGRESS_STYLE] ?: "ROUNDED")
+            ProgressBarStyle.valueOf(prefs[KEY_PROGRESS_STYLE] ?: "LINEAR")
         } catch (e: Exception) {
-            ProgressBarStyle.ROUNDED
+            ProgressBarStyle.LINEAR
         }
     }
 
@@ -132,6 +132,10 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setFilterLongVideos(enabled: Boolean) { context.dataStore.edit { it[KEY_FILTER_LONG] = enabled } }
     suspend fun setFilterLoopTitle(enabled: Boolean) { context.dataStore.edit { it[KEY_FILTER_LOOP] = enabled } }
+
+    private val KEY_FILTER_KEYWORDS = stringPreferencesKey("filter_keywords")
+    val filterKeywords: Flow<String> = context.dataStore.data.map { it[KEY_FILTER_KEYWORDS] ?: "" }
+    suspend fun setFilterKeywords(keywords: String) { context.dataStore.edit { it[KEY_FILTER_KEYWORDS] = keywords } }
 
     // ===== Page Transition =====
     private val KEY_PAGE_TRANSITION = stringPreferencesKey("page_transition")

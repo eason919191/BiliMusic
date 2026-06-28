@@ -28,8 +28,9 @@ data class SettingsUiState(
     val useDynamicColor: Boolean = true,
     val seedColor: Int = 0xFF6750A4.toInt(),
     val blurDegree: Float = 25f,
-    val progressBarStyle: ProgressBarStyle = ProgressBarStyle.ROUNDED,
+    val progressBarStyle: ProgressBarStyle = ProgressBarStyle.LINEAR,
     val searchSort: String = "totalrank",
+    val filterKeywords: String = "",
     val filterLongVideos: Boolean = true,
     val filterLoopTitle: Boolean = true,
     val pageTransition: String = "slide",
@@ -117,6 +118,9 @@ class SettingsViewModel @Inject constructor(
             preferences.filterLongVideos.collect { v -> _uiState.update { it.copy(filterLongVideos = v) } }
         }
         viewModelScope.launch {
+            preferences.filterKeywords.collect { v -> _uiState.update { it.copy(filterKeywords = v) } }
+        }
+        viewModelScope.launch {
             preferences.filterLoopTitle.collect { v -> _uiState.update { it.copy(filterLoopTitle = v) } }
         }
         viewModelScope.launch {
@@ -202,6 +206,9 @@ class SettingsViewModel @Inject constructor(
     }
     fun setFilterLongVideos(enabled: Boolean) {
         viewModelScope.launch { preferences.setFilterLongVideos(enabled) }
+    }
+    fun setFilterKeywords(keywords: String) {
+        viewModelScope.launch { preferences.setFilterKeywords(keywords) }
     }
     fun setFilterLoopTitle(enabled: Boolean) {
         viewModelScope.launch { preferences.setFilterLoopTitle(enabled) }
@@ -395,7 +402,11 @@ class SettingsViewModel @Inject constructor(
             try {
                 val videos = BilibiliApiClient.getFavoriteResources(cookie, folderId)
                 val folderName = _uiState.value.favoriteFolders.find { it.id == folderId }?.title ?: "B站收藏"
-                val playlist = Playlist(name = folderName)
+                val playlist = Playlist(
+                    name = folderName,
+                    favoriteFolderId = folderId,
+                    favoriteFolderName = folderName
+                )
                 repository.insertPlaylist(playlist)
                 videos.forEach { video ->
                     val music = Music(
@@ -408,7 +419,6 @@ class SettingsViewModel @Inject constructor(
                     )
                     repository.addSongToPlaylist(playlist.id, music)
                 }
-                // 确保最终计数准确
                 repository.updatePlaylistSongCount(playlist.id)
                 _uiState.update { it.copy(error = "导入成功！共导入 ${videos.size} 首歌曲") }
             } catch (e: Exception) {
