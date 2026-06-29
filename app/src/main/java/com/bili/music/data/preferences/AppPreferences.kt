@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import com.bili.music.data.model.PlayMode
+import com.bili.music.data.model.LyricsMode
 import com.bili.music.data.model.ProgressBarStyle
 import com.bili.music.data.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -29,6 +30,7 @@ class AppPreferences(private val context: Context) {
         private val KEY_PLAYER_BG_PURE_COLOR = booleanPreferencesKey("player_bg_pure_color")
         private val KEY_DOWNLOAD_PATH = stringPreferencesKey("download_path")
         private val KEY_FIRST_LAUNCH = booleanPreferencesKey("first_launch")
+        private val KEY_LYRICS_MODE = stringPreferencesKey("lyrics_mode")
     }
 
     // ===== Theme =====
@@ -149,6 +151,16 @@ class AppPreferences(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[KEY_PAGE_TRANSITION] = transition
         }
+    }
+
+    // ===== Lyrics Mode =====
+    val lyricsMode: Flow<LyricsMode> = context.dataStore.data.map { prefs ->
+        try { LyricsMode.valueOf(prefs[KEY_LYRICS_MODE] ?: "ZH_ONLY") }
+        catch (_: Exception) { LyricsMode.ZH_ONLY }
+    }
+
+    suspend fun setLyricsMode(mode: LyricsMode) {
+        context.dataStore.edit { it[KEY_LYRICS_MODE] = mode.name }
     }
 
     // ===== Sleep Timer =====

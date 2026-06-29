@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.bili.music.R
 import com.bili.music.ui.components.BiliAsyncImage
 import com.bili.music.ui.components.PixelProgressBar
+import com.bili.music.data.model.LyricsMode
 import com.bili.music.data.model.PlayMode
 
 @Composable
@@ -98,6 +99,7 @@ fun PlayerScreen(
                 onRemoveFromPlaylist = { viewModel.removeFromPlaylist(it) },
                 onAddToPlaylist = { showPlaylistDialog = true },
                 onToggleLyrics = { viewModel.toggleLyrics() },
+                onCycleLyricsMode = { viewModel.cycleLyricsMode() },
                 onDownload = { viewModel.downloadCurrentSong() },
                 onShare = {
                     val text = viewModel.getCurrentSongShareText()
@@ -131,6 +133,7 @@ private fun PlayerContent(
     onRemoveFromPlaylist: (Int) -> Unit,
     onAddToPlaylist: () -> Unit = {},
     onToggleLyrics: () -> Unit = {},
+    onCycleLyricsMode: () -> Unit = {},
     onDownload: () -> Unit = {},
     onShare: () -> Unit = {}
 ) {
@@ -202,6 +205,20 @@ private fun PlayerContent(
                                 else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                             }
                         )
+                    }
+                    // 歌词语言切换（仅歌词显示时可见）
+                    if (uiState.showLyrics && uiState.subtitleOptions.size > 1) {
+                        TextButton(
+                            onClick = onCycleLyricsMode,
+                            modifier = Modifier.height(32.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+                        ) {
+                            Text(
+                                text = uiState.lyricsMode.displayName,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                     IconButton(onClick = onAddToPlaylist) {
                         Icon(Icons.Filled.PlaylistAdd, contentDescription = stringResource(R.string.player_add_to_playlist), tint = MaterialTheme.colorScheme.onSurface)

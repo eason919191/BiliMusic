@@ -3,6 +3,8 @@ package com.bili.music.ui.screens.player
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bili.music.data.api.BilibiliApiClient
+import com.bili.music.data.api.LyricLine
+import com.bili.music.data.api.PlayerSubtitleItem
 import com.bili.music.data.model.*
 import com.bili.music.data.preferences.AppPreferences
 import com.bili.music.data.repository.MusicRepository
@@ -24,9 +26,21 @@ data class PlayerUiState(
     val playerBgPureColor: Boolean = false,
     val isMinimized: Boolean = false,
     val playerError: String? = null,
-    val lyrics: List<com.bili.music.data.api.LyricLine> = emptyList(),
+    val lyrics: List<LyricLine> = emptyList(),
     val showLyrics: Boolean = false,
-    val currentLyricIndex: Int = -1
+    val currentLyricIndex: Int = -1,
+    // 歌词多语言
+    val lyricsMode: LyricsMode = LyricsMode.ZH_ONLY,
+    val subtitleOptions: List<SubtitleOption> = emptyList(),
+    /** 已加载的各语言字幕行 */
+    val loadedLyrics: Map<String, List<LyricLine>> = emptyMap()
+)
+
+/** 字幕语言选项 */
+data class SubtitleOption(
+    val lang: String,
+    val label: String,
+    val url: String
 )
 
 @HiltViewModel
@@ -42,14 +56,28 @@ class PlayerViewModel @Inject constructor(
     private var lyricsLoadJob: kotlinx.coroutines.Job? = null
 
     init {
+        // 歌词模式偏好
+        viewModelScope.launch {
+            preferences.lyricsMode.collect { mode: LyricsMode ->
+                _uiState.update { it.copy(lyricsMode = mode) }
+                // 已加载过歌词则刷新显示
+                if (_uiState.value.loadedLyrics.isNotEmpty()) {
+                    applyLyricsMode(mode)
+                }
+            }
+        }
+
         // 歌曲切换时加载歌词（取消上一次加载避免竞态）
         viewModelScope.launch {
             musicPlayer.currentSong.collect { song ->
                 lyricsLoadJob?.cancel()
-                _uiState.update { it.copy(currentSong = song, lyrics = emptyList(), currentLyricIndex = -1) }
+                _uiState.update { it.copy(
+                    currentSong = song, lyrics = emptyList(), currentLyricIndex = -1,
+                    subtitleOptions = emptyList(), loadedLyrics = emptyMap()
+                ) }
                 if (song != null && song.bvid != null) {
                     android.util.Log.d("PlayerVM", "Loading lyrics for bvid=${song.bvid}, title=${song.title}")
-                    lyricsLoadJob = loadLyrics(song.bvid, song.page.toLong(), song.title)
+                    lyricsLoadJob = loadAllLyrics(song.bvid, song.page.toLong())
                 } else if (song != null) {
                     android.util.Log.d("PlayerVM", "No bvid for song: ${song.title}")
                 }
@@ -201,46 +229,129 @@ class PlayerViewModel @Inject constructor(
         _uiState.update { it.copy(showLyrics = !it.showLyrics) }
     }
 
-    private fun loadLyrics(bvid: String, page: Long, title: String): kotlinx.coroutines.Job {
+    /** 切换歌词显示模式（中文 → 英文 → 双语 → 中文…） */
+    fun cycleLyricsMode() {
+        val next = when (_uiState.value.lyricsMode) {
+            LyricsMode.ZH_ONLY -> LyricsMode.EN_ONLY
+            LyricsMode.EN_ONLY -> LyricsMode.BILINGUAL
+            LyricsMode.BILINGUAL -> LyricsMode.ZH_ONLY
+        }
+        viewModelScope.launch {
+            preferences.setLyricsMode(next)
+        }
+    }
+
+    /** 加载当前歌曲的所有可用字幕 */
+    private fun loadAllLyrics(bvid: String, page: Long): kotlinx.coroutines.Job {
         return viewModelScope.launch {
             try {
-                // 确保API客户端有cookie（从DataStore同步）
+                // 确保API客户端有cookie
                 if (com.bili.music.data.api.BilibiliApiClient.userCookie.isBlank()) {
                     val savedCookie = preferences.bilibiliCookie.first()
                     if (savedCookie.isNotBlank()) {
                         com.bili.music.data.api.BilibiliApiClient.userCookie = savedCookie
                     }
                 }
-                // 获取视频详情 - 使用与音频播放相同的cid
                 val detail = com.bili.music.data.api.BilibiliApiClient.getVideoDetail(bvid)
                 if (detail == null) return@launch
                 val cid = detail.cid
 
-                android.util.Log.d("PlayerVM", "Fetching subtitles: bvid=$bvid cid=$cid title=$title")
+                android.util.Log.d("PlayerVM", "Fetching all subtitles: bvid=$bvid cid=$cid")
 
-                // 直接用player/v2 API获取字幕（带cookie可获取AI字幕）
                 val subtitles = com.bili.music.data.api.BilibiliApiClient.getVideoSubtitles(bvid, cid, detail.aid)
                 if (subtitles.isEmpty()) return@launch
 
-                // 优先中文字幕（含AI字幕）
-                val zhSub = subtitles.find { it.lan.contains("zh", ignoreCase = true) || it.lan.contains("ai-zh", ignoreCase = true) }
-                    ?: subtitles.firstOrNull()
-
-                if (zhSub != null && zhSub.subtitleUrl.isNotBlank()) {
-                    val lines = com.bili.music.data.api.BilibiliApiClient.fetchSubtitleContent(zhSub.subtitleUrl)
-                    android.util.Log.d("PlayerVM", "Got ${lines.size} lines, first: ${lines.firstOrNull()?.text?.take(50)}")
-                    if (lines.isNotEmpty()) {
-                        // 确认这歌词不是上一次未取消请求的结果
-                        if (_uiState.value.currentSong?.bvid == bvid) {
-                            _uiState.update { it.copy(lyrics = lines) }
-                        } else {
-                            android.util.Log.d("PlayerVM", "Lyrics arrived for wrong song, discarding")
+                // 构建语言选项列表，AI字幕优先
+                val options = subtitles.filter { it.subtitleUrl.isNotBlank() }.map { item ->
+                    val label = if (item.lan.startsWith("ai-")) {
+                        when {
+                            item.lan.contains("zh") -> "中文"
+                            item.lan.contains("en") -> "英文"
+                            item.lan.contains("jp") -> "日文"
+                            else -> item.lanDoc
                         }
-                    }
+                    } else item.lanDoc
+                    SubtitleOption(lang = item.lan, label = label, url = item.subtitleUrl)
                 }
+                if (options.isEmpty()) return@launch
+
+                // 同时加载所有语言的字幕
+                val urlToLang = options.associate { it.url to it.lang }
+                val linesMap = mutableMapOf<String, List<LyricLine>>()
+                for (opt in options) {
+                    try {
+                        val lines = com.bili.music.data.api.BilibiliApiClient.fetchSubtitleContent(opt.url)
+                        if (lines.isNotEmpty()) {
+                            linesMap[opt.lang] = lines
+                            android.util.Log.d("PlayerVM", "Loaded ${lines.size} lines for ${opt.lang}")
+                        }
+                    } catch (_: Exception) { }
+                }
+
+                if (_uiState.value.currentSong?.bvid != bvid) {
+                    android.util.Log.d("PlayerVM", "Lyrics arrived for wrong song, discarding")
+                    return@launch
+                }
+
+                _uiState.update { it.copy(
+                    subtitleOptions = options,
+                    loadedLyrics = linesMap
+                ) }
+                // 按当前模式合并显示
+                applyLyricsMode(_uiState.value.lyricsMode)
             } catch (e: Exception) {
-                android.util.Log.e("PlayerVM", "loadLyrics failed", e)
+                android.util.Log.e("PlayerVM", "loadAllLyrics failed", e)
             }
         }
+    }
+
+    /** 根据模式合并歌词到显示列表 */
+    private fun applyLyricsMode(mode: LyricsMode) {
+        val loaded = _uiState.value.loadedLyrics
+        val merged = when (mode) {
+            LyricsMode.ZH_ONLY -> pickLang(loaded, "ai-zh", "zh")
+            LyricsMode.EN_ONLY -> pickLang(loaded, "ai-en", "en")
+            LyricsMode.BILINGUAL -> mergeBilingual(loaded)
+        }
+        _uiState.update { it.copy(lyrics = merged, lyricsMode = mode, currentLyricIndex = -1) }
+    }
+
+    /** 按优先级取一种语言 */
+    private fun pickLang(map: Map<String, List<LyricLine>>, vararg priorities: String): List<LyricLine> {
+        for (key in priorities) {
+            map[key]?.let { if (it.isNotEmpty()) return it }
+        }
+        return map.values.firstOrNull() ?: emptyList()
+    }
+
+    /** 合并中英双语（按时间轴交织，相同时间合并成一行） */
+    private fun mergeBilingual(map: Map<String, List<LyricLine>>): List<LyricLine> {
+        val zh = pickLang(map, "ai-zh", "zh")
+        val en = pickLang(map, "ai-en", "en")
+        if (zh.isEmpty()) return en
+        if (en.isEmpty()) return zh
+
+        val result = mutableListOf<LyricLine>()
+        var i = 0; var j = 0
+        val tolerance = 150L // 同一句的时间容差 (ms)
+        while (i < zh.size || j < en.size) {
+            when {
+                i >= zh.size -> { result.add(en[j]); j++ }
+                j >= en.size -> { result.add(zh[i]); i++ }
+                else -> {
+                    val diff = zh[i].timeMs - en[j].timeMs
+                    if (kotlin.math.abs(diff) <= tolerance) {
+                        // 同一句，合并显示
+                        result.add(LyricLine(zh[i].timeMs, "${zh[i].text}\n${en[j].text}"))
+                        i++; j++
+                    } else if (diff < 0) {
+                        result.add(zh[i]); i++
+                    } else {
+                        result.add(en[j]); j++
+                    }
+                }
+            }
+        }
+        return result
     }
 }

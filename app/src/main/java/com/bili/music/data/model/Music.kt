@@ -145,6 +145,15 @@ enum class ProgressBarStyle(val displayName: String) {
 }
 
 /**
+ * 歌词显示模式
+ */
+enum class LyricsMode(val displayName: String) {
+    ZH_ONLY("中文"),
+    EN_ONLY("英文"),
+    BILINGUAL("双语")
+}
+
+/**
  * 定时关闭选项
  */
 data class SleepTimer(
