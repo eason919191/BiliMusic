@@ -49,6 +49,7 @@ fun SettingsScreen(
     var showProgressStyleDialog by remember { mutableStateOf(false) }
     var showPageTransitionDialog by remember { mutableStateOf(false) }
     var showFolderSelectDialog by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -337,7 +338,7 @@ fun SettingsScreen(
                 icon = Icons.Outlined.Info,
                 title = stringResource(R.string.settings_about),
                 subtitle = stringResource(R.string.settings_version),
-                onClick = {}
+                onClick = { showAboutDialog = true }
             )
         }
 
@@ -477,6 +478,13 @@ fun SettingsScreen(
                 showFolderSelectDialog = false
             },
             onDismiss = { showFolderSelectDialog = false }
+        )
+    }
+
+    if (showAboutDialog) {
+        AboutDialog(
+            version = stringResource(R.string.settings_version),
+            onDismiss = { showAboutDialog = false }
         )
     }
 
@@ -1209,6 +1217,73 @@ private fun FolderSelectDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+        }
+    )
+}
+
+@Composable
+private fun AboutDialog(
+    version: String,
+    onDismiss: () -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val githubUri = android.net.Uri.parse("https://github.com/eason919191/BiliMusic")
+    val bilibiliUri = android.net.Uri.parse("https://space.bilibili.com/88981336")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Outlined.Info, null, tint = MaterialTheme.colorScheme.primary) },
+        title = { Text("BiliMusic $version") },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.about_description),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                // GitHub 链接
+                Surface(
+                    onClick = { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, githubUri)) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Filled.Code, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(stringResource(R.string.about_github), style = MaterialTheme.typography.titleSmall)
+                            Text("github.com/eason919191/BiliMusic", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                // B站链接
+                Surface(
+                    onClick = { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, bilibiliUri)) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Filled.SmartDisplay, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(stringResource(R.string.about_bilibili), style = MaterialTheme.typography.titleSmall)
+                            Text("space.bilibili.com/88981336", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_confirm)) }
         }
     )
 }

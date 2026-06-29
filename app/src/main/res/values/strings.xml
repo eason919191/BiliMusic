@@ -186,6 +186,9 @@
     <string name="settings_group_about">关于</string>
     <string name="settings_about">关于 BiliMusic</string>
     <string name="settings_version">v1.0.0</string>
+    <string name="about_description">这是一个用 Claude Code + Deepseek V4 做出来的音乐软件。</string>
+    <string name="about_github">GitHub 链接</string>
+    <string name="about_bilibili">哔哩哔哩主页</string>
 
     <!-- Login Dialog -->
     <string name="login_title">B站账号登录</string>
