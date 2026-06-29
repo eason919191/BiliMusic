@@ -165,7 +165,7 @@ fun MainScreen() {
                 ) { tab ->
                     when (tab) {
                         0 -> SearchScreen()
-                        1 -> PlaylistScreen()
+                        1 -> PlaylistScreen(isPlayerExpanded = showPlayer)
                         2 -> DownloadsScreen()
                         3 -> SettingsScreen(viewModel = settingsViewModel)
                     }

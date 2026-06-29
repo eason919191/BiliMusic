@@ -50,7 +50,8 @@ import com.bili.music.data.model.Playlist
 
 @Composable
 fun PlaylistScreen(
-    viewModel: PlaylistViewModel = hiltViewModel()
+    viewModel: PlaylistViewModel = hiltViewModel(),
+    isPlayerExpanded: Boolean = false
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -65,8 +66,8 @@ fun PlaylistScreen(
         }
     }
 
-    // Back from detail to playlist list
-    BackHandler(enabled = uiState.isShowingDetail) {
+    // Back from detail to playlist list (only if player overlay is not showing)
+    BackHandler(enabled = uiState.isShowingDetail && !isPlayerExpanded) {
         viewModel.hidePlaylistDetail()
     }
 
