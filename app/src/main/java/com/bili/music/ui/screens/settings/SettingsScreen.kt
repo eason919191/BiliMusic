@@ -1229,6 +1229,7 @@ private fun AboutDialog(
     val context = androidx.compose.ui.platform.LocalContext.current
     val githubUri = android.net.Uri.parse("https://github.com/eason919191/BiliMusic")
     val bilibiliUri = android.net.Uri.parse("https://space.bilibili.com/88981336")
+    val bilibiliAppUri = android.net.Uri.parse("bilibili://space/88981336")
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1263,7 +1264,14 @@ private fun AboutDialog(
                 Spacer(Modifier.height(8.dp))
                 // B站链接
                 Surface(
-                    onClick = { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, bilibiliUri)) },
+                    onClick = {
+                        // 优先打开B站App，失败则跳转浏览器
+                        val appIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, bilibiliAppUri).apply {
+                            setPackage("tv.danmaku.bili")
+                        }
+                        try { context.startActivity(appIntent) }
+                        catch (_: Exception) { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, bilibiliUri)) }
+                    },
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.fillMaxWidth()
