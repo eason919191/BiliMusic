@@ -20,10 +20,20 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
             isShrinkResources = false
+            signingConfig = signingConfigs.getByName("release")
         }
         debug {
             isMinifyEnabled = false
@@ -42,8 +52,7 @@ android {
             "-opt-in=kotlin.RequiresOptIn",
             "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi",
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-            "-opt-in=androidx.compose.animation.ExperimentalAnimationApi",
-            "-opt-in=androidx.media3.common.util.UnstableApi"
+            "-opt-in=androidx.compose.animation.ExperimentalAnimationApi"
         )
     }
 
@@ -100,12 +109,10 @@ dependencies {
 
     // Media compat - MediaStyle通知
     implementation("androidx.media:media:1.7.0")
-    // ExoPlayer - Media playback
-    implementation("androidx.media3:media3-exoplayer:1.2.1")
-    implementation("androidx.media3:media3-exoplayer-hls:1.2.1")
-    implementation("androidx.media3:media3-session:1.2.1")
-    implementation("androidx.media3:media3-ui:1.2.1")
-    implementation("androidx.media3:media3-datasource-okhttp:1.2.1")
+    // No ExoPlayer - using android.media.MediaPlayer with MediaSessionCompat
+
+    // Security - EncryptedSharedPreferences for cookie storage
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // Coil - Image loading
     implementation("io.coil-kt:coil-compose:2.5.0")

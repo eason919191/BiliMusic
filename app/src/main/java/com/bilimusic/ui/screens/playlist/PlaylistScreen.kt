@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
@@ -41,6 +42,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.bilimusic.R
 import com.bilimusic.ui.components.BiliAsyncImage
 import com.bilimusic.data.model.Music
 import android.widget.Toast
@@ -117,13 +119,13 @@ fun PlaylistScreen(
     if (uiState.isCreatingPlaylist) {
         AlertDialog(
             onDismissRequest = { viewModel.hideCreatePlaylist() },
-            title = { Text("创建歌单") },
+            title = { Text(stringResource(R.string.playlist_create_dialog_title)) },
             text = {
                 Column {
                     OutlinedTextField(
                         value = uiState.newPlaylistName,
                         onValueChange = { viewModel.setNewPlaylistName(it) },
-                        label = { Text("歌单名称") },
+                        label = { Text(stringResource(R.string.playlist_name_label)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -131,7 +133,7 @@ fun PlaylistScreen(
                     OutlinedTextField(
                         value = uiState.newPlaylistDescription,
                         onValueChange = { viewModel.setNewPlaylistDescription(it) },
-                        label = { Text("歌单描述（可选）") },
+                        label = { Text(stringResource(R.string.playlist_desc_label)) },
                         maxLines = 3,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -142,12 +144,12 @@ fun PlaylistScreen(
                     onClick = { viewModel.createPlaylist() },
                     enabled = uiState.newPlaylistName.isNotBlank()
                 ) {
-                    Text("创建")
+                    Text(stringResource(R.string.playlist_create_button))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.hideCreatePlaylist() }) {
-                    Text("取消")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )
@@ -157,24 +159,24 @@ fun PlaylistScreen(
     if (uiState.showTargetPlaylistDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.hideTargetDialog() },
-            title = { Text(if (uiState.isCopyMode) "复制到歌单" else "移动到歌单") },
+            title = { Text(if (uiState.isCopyMode) stringResource(R.string.playlist_copy_title) else stringResource(R.string.playlist_move_title)) },
             text = {
                 val available = uiState.playlists.filter { it.id != uiState.selectedPlaylistId }
                 if (available.isEmpty()) {
-                    Text("没有可用的歌单")
+                    Text(stringResource(R.string.playlist_no_target))
                 } else {
                     LazyColumn(Modifier.heightIn(max = 300.dp)) {
                         items(available) { target ->
                             ListItem(
                                 headlineContent = { Text(target.name) },
-                                supportingContent = { Text("${target.songCount} 首") },
+                                supportingContent = { Text(stringResource(R.string.playlist_song_count, target.songCount)) },
                                 modifier = Modifier.clickable { viewModel.batchCopyOrMoveToPlaylist(target.id) }
                             )
                         }
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { viewModel.hideTargetDialog() }) { Text("取消") } }
+            confirmButton = { TextButton(onClick = { viewModel.hideTargetDialog() }) { Text(stringResource(R.string.common_cancel)) } }
         )
     }
 
@@ -183,12 +185,12 @@ fun PlaylistScreen(
         val pid = selectedPlaylistId!!
         AlertDialog(
             onDismissRequest = { viewModel.hideSyncDialog() },
-            title = { Text("同步B站收藏夹") },
+            title = { Text(stringResource(R.string.playlist_sync_title)) },
             text = {
                 Column {
                     ListItem(
-                        headlineContent = { Text("从B站拉取") },
-                        supportingContent = { Text("将收藏夹中的新视频添加到本歌单") },
+                        headlineContent = { Text(stringResource(R.string.playlist_sync_pull)) },
+                        supportingContent = { Text(stringResource(R.string.playlist_sync_pull_desc)) },
                         leadingContent = { Icon(Icons.Filled.CloudDownload, null) },
                         modifier = Modifier.clickable {
                             viewModel.hideSyncDialog()
@@ -196,8 +198,8 @@ fun PlaylistScreen(
                         }
                     )
                     ListItem(
-                        headlineContent = { Text("推送到B站") },
-                        supportingContent = { Text("将歌单中有BV号的新歌曲添加到收藏夹") },
+                        headlineContent = { Text(stringResource(R.string.playlist_sync_push)) },
+                        supportingContent = { Text(stringResource(R.string.playlist_sync_push_desc)) },
                         leadingContent = { Icon(Icons.Filled.CloudUpload, null) },
                         modifier = Modifier.clickable {
                             viewModel.hideSyncDialog()
@@ -206,7 +208,7 @@ fun PlaylistScreen(
                     )
                 }
             },
-            confirmButton = { TextButton(onClick = { viewModel.hideSyncDialog() }) { Text("取消") } }
+            confirmButton = { TextButton(onClick = { viewModel.hideSyncDialog() }) { Text(stringResource(R.string.common_cancel)) } }
         )
     }
 }
@@ -229,11 +231,11 @@ private fun PlaylistListScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "我的歌单",
+                stringResource(R.string.playlist_title),
                 style = MaterialTheme.typography.titleLarge
             )
             FilledTonalIconButton(onClick = onCreatePlaylist) {
-                Icon(Icons.Filled.Add, contentDescription = "创建歌单")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.playlist_create_dialog_title))
             }
         }
 
@@ -251,12 +253,12 @@ private fun PlaylistListScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        "还没有歌单",
+                        stringResource(R.string.playlist_empty),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                     Text(
-                        "点击右上角按钮创建",
+                        stringResource(R.string.playlist_empty_hint_create),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     )
@@ -312,7 +314,7 @@ private fun PlaylistCard(
                 if (playlist.coverUrl != null) {
                     BiliAsyncImage(
                         model = playlist.coverUrl,
-                        contentDescription = "歌单封面",
+                        contentDescription = stringResource(R.string.player_cover_art),
                         modifier = Modifier
                             .fillMaxWidth()
                             .aspectRatio(1f)
@@ -349,7 +351,7 @@ private fun PlaylistCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "${playlist.songCount} 首",
+                        text = stringResource(R.string.playlist_song_count, playlist.songCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -362,7 +364,7 @@ private fun PlaylistCard(
                 onDismissRequest = { showMenu = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text("删除歌单") },
+                    text = { Text(stringResource(R.string.playlist_context_menu_delete)) },
                     onClick = {
                         showMenu = false
                         onDelete()
@@ -454,13 +456,13 @@ private fun PlaylistDetailScreen(
         if (isSelecting) {
             Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)) {
                 Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("已选 ${selectedSongIds.size} 项", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-                    TextButton(onClick = onSelectAll) { Text("全选") }
-                    IconButton(onClick = onCopyToPlaylist) { Icon(Icons.Filled.ContentCopy, "复制到") }
-                    IconButton(onClick = onMoveToPlaylist) { Icon(Icons.Filled.ContentPasteGo, "移动到") }
-                    IconButton(onClick = onBatchDownload) { Icon(Icons.Filled.Download, "下载") }
-                    IconButton(onClick = onBatchRemove) { Icon(Icons.Filled.Delete, "移除", tint = MaterialTheme.colorScheme.error) }
-                    IconButton(onClick = handleExitSelection) { Icon(Icons.Filled.Close, "取消") }
+                    Text(stringResource(R.string.playlist_selected_count, selectedSongIds.size), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+                    TextButton(onClick = onSelectAll) { Text(stringResource(R.string.playlist_select_all)) }
+                    IconButton(onClick = onCopyToPlaylist) { Icon(Icons.Filled.ContentCopy, stringResource(R.string.playlist_copy_to)) }
+                    IconButton(onClick = onMoveToPlaylist) { Icon(Icons.Filled.ContentPasteGo, stringResource(R.string.playlist_move_to)) }
+                    IconButton(onClick = onBatchDownload) { Icon(Icons.Filled.Download, stringResource(R.string.player_download)) }
+                    IconButton(onClick = onBatchRemove) { Icon(Icons.Filled.Delete, stringResource(R.string.playlist_remove), tint = MaterialTheme.colorScheme.error) }
+                    IconButton(onClick = handleExitSelection) { Icon(Icons.Filled.Close, stringResource(R.string.common_cancel)) }
                 }
             }
         }
@@ -473,20 +475,20 @@ private fun PlaylistDetailScreen(
                 } else Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)))
                 Row(Modifier.fillMaxSize().padding(16.dp).statusBarsPadding(), verticalAlignment = Alignment.Bottom) {
                     Card(Modifier.size(100.dp), RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(6.dp)) {
-                        if (playlistCover != null) BiliAsyncImage(playlistCover, "封面", Modifier.fillMaxSize(), ContentScale.Crop)
+                        if (playlistCover != null) BiliAsyncImage(playlistCover, stringResource(R.string.player_cover_art), Modifier.fillMaxSize(), ContentScale.Crop)
                         else Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) { Icon(Icons.Filled.QueueMusic, null, Modifier.size(40.dp)) }
                     }
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(playlistName, style = MaterialTheme.typography.titleLarge, color = androidx.compose.ui.graphics.Color.White)
                         val totalMin = songs.sumOf { it.duration } / 60000
-                        Text("${songs.size}首·${totalMin}分钟", style = MaterialTheme.typography.bodyMedium, color = androidx.compose.ui.graphics.Color.White.copy(0.8f))
+                        Text(stringResource(R.string.playlist_total_minutes, songs.size, totalMin), style = MaterialTheme.typography.bodyMedium, color = androidx.compose.ui.graphics.Color.White.copy(0.8f))
                     }
                 }
                 Row(Modifier.fillMaxWidth().padding(4.dp).statusBarsPadding(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, "返回", tint = androidx.compose.ui.graphics.Color.White) }
+                    IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, stringResource(R.string.common_back), tint = androidx.compose.ui.graphics.Color.White) }
                     Row {
-                        IconButton(onClick = onPlayAll) { Icon(Icons.Filled.PlayArrow, "播放全部", tint = androidx.compose.ui.graphics.Color.White) }
+                        IconButton(onClick = onPlayAll) { Icon(Icons.Filled.PlayArrow, stringResource(R.string.playlist_play_all), tint = androidx.compose.ui.graphics.Color.White) }
                         if (playlistFavoriteFolderId != null) {
                             IconButton(
                                 onClick = onSync,
@@ -499,11 +501,11 @@ private fun PlaylistDetailScreen(
                                         color = androidx.compose.ui.graphics.Color.White
                                     )
                                 } else {
-                                    Icon(Icons.Filled.Sync, "同步收藏夹", tint = androidx.compose.ui.graphics.Color.White)
+                                    Icon(Icons.Filled.Sync, stringResource(R.string.playlist_sync_favorite), tint = androidx.compose.ui.graphics.Color.White)
                                 }
                             }
                         }
-                        IconButton(onClick = { showDeleteConfirm = true }) { Icon(Icons.Filled.Delete, "删除", tint = androidx.compose.ui.graphics.Color.White) }
+                        IconButton(onClick = { showDeleteConfirm = true }) { Icon(Icons.Filled.Delete, stringResource(R.string.playlist_delete), tint = androidx.compose.ui.graphics.Color.White) }
                     }
                 }
             }
@@ -511,13 +513,13 @@ private fun PlaylistDetailScreen(
             // 选择模式下的简单顶栏
             TopAppBar(
                 title = { Text("") },
-                navigationIcon = { IconButton(onClick = handleExitSelection) { Icon(Icons.Filled.Close, "返回") } }
+                navigationIcon = { IconButton(onClick = handleExitSelection) { Icon(Icons.Filled.Close, stringResource(R.string.common_back)) } }
             )
         }
 
         if (songs.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("歌单为空", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.playlist_empty_detail), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             // 从 localOrderById 和 songs 派生显示列表：用 songMap 做映射，保证 songs 数据变更时也能正确反映
@@ -542,23 +544,23 @@ private fun PlaylistDetailScreen(
                             if (isSelecting) {
                                 Icon(
                                     Icons.Filled.DragHandle,
-                                    contentDescription = "拖动排序",
+                                    contentDescription = stringResource(R.string.playlist_drag_hint),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                 )
                             } else {
                                 var showMenu by remember { mutableStateOf(false) }
                                 Row {
-                                    IconButton(onClick = { onPlaySong(index) }) { Icon(Icons.Filled.PlayArrow, "播放", Modifier.size(18.dp)) }
-                                    IconButton(onClick = { onDownloadSong(song.id) }) { Icon(Icons.Filled.Download, "下载", Modifier.size(18.dp)) }
+                                    IconButton(onClick = { onPlaySong(index) }) { Icon(Icons.Filled.PlayArrow, stringResource(R.string.player_play), Modifier.size(18.dp)) }
+                                    IconButton(onClick = { onDownloadSong(song.id) }) { Icon(Icons.Filled.Download, stringResource(R.string.player_download), Modifier.size(18.dp)) }
                                     Box {
-                                        IconButton(onClick = { showMenu = true }) { Icon(Icons.Filled.MoreVert, "更多", Modifier.size(18.dp)) }
+                                        IconButton(onClick = { showMenu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.playlist_more), Modifier.size(18.dp)) }
                                         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                                            DropdownMenuItem(text = { Text("添加到歌单") }, onClick = {
+                                            DropdownMenuItem(text = { Text(stringResource(R.string.player_add_to_playlist)) }, onClick = {
                                                 showMenu = false
                                                 onToggleSelect(song.id)
                                                 onCopyToPlaylist()
                                             }, leadingIcon = { Icon(Icons.Filled.PlaylistAdd, null) })
-                                            DropdownMenuItem(text = { Text("在B站App中打开") }, onClick = {
+                                            DropdownMenuItem(text = { Text(stringResource(R.string.search_open_in_bilibili)) }, onClick = {
                                                 showMenu = false
                                                 try {
                                                     context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
@@ -567,15 +569,15 @@ private fun PlaylistDetailScreen(
                                                     })
                                                 } catch (_: Exception) {}
                                             }, leadingIcon = { Icon(Icons.Filled.OpenInBrowser, null) })
-                                            DropdownMenuItem(text = { Text("分享") }, onClick = {
+                                            DropdownMenuItem(text = { Text(stringResource(R.string.player_share)) }, onClick = {
                                                 showMenu = false
                                                 val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                                                     type = "text/plain"
                                                     putExtra(android.content.Intent.EXTRA_TEXT, "【${song.title}】- ${song.artist}\nhttps://www.bilibili.com/video/${song.bvid}")
                                                 }
-                                                context.startActivity(android.content.Intent.createChooser(intent, "分享"))
+                                                context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.player_share)))
                                             }, leadingIcon = { Icon(Icons.Filled.Share, null) })
-                                            DropdownMenuItem(text = { Text("移除") }, onClick = { showMenu = false; onRemoveSong(song.id) }, leadingIcon = { Icon(Icons.Filled.Delete, null) })
+                                            DropdownMenuItem(text = { Text(stringResource(R.string.playlist_remove)) }, onClick = { showMenu = false; onRemoveSong(song.id) }, leadingIcon = { Icon(Icons.Filled.Delete, null) })
                                         }
                                     }
                                 }
@@ -643,10 +645,10 @@ private fun PlaylistDetailScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("删除歌单") },
-            text = { Text("确定要删除「$playlistName」吗？歌曲不会被删除。") },
-            confirmButton = { TextButton(onClick = { showDeleteConfirm = false; onDeletePlaylist() }) { Text("删除", color = MaterialTheme.colorScheme.error) } },
-            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("取消") } }
+            title = { Text(stringResource(R.string.playlist_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.playlist_delete_confirm_text, playlistName)) },
+            confirmButton = { TextButton(onClick = { showDeleteConfirm = false; onDeletePlaylist() }) { Text(stringResource(R.string.playlist_delete), color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.common_cancel)) } }
         )
     }
 }

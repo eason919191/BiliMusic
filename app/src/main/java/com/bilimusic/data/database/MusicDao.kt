@@ -83,6 +83,9 @@ interface MusicDao {
     @Query("SELECT * FROM search_history ORDER BY searchedAt DESC LIMIT 20")
     fun getSearchHistory(): Flow<List<SearchHistory>>
 
+    @Query("DELETE FROM search_history WHERE query = :query")
+    suspend fun deleteSearchHistoryByQuery(query: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun addSearchHistory(history: SearchHistory)
 

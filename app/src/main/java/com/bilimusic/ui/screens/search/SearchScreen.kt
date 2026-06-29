@@ -24,8 +24,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.bilimusic.R
 import com.bilimusic.ui.components.BiliAsyncImage
 import com.bilimusic.data.model.BilibiliVideo
 
@@ -62,16 +64,16 @@ fun SearchScreen(
         val isBatch = uiState.isSelecting
         AlertDialog(
             onDismissRequest = { showPlaylistDialog = false; pendingVideo = null },
-            title = { Text(if (isBatch) "批量添加到歌单" else "添加到歌单") },
+            title = { Text(stringResource(R.string.player_add_to_playlist)) },
             text = {
                 if (playlistUiState.playlists.isEmpty()) {
-                    Text("还没有歌单，请先去歌单页面创建")
+                    Text(stringResource(R.string.playlist_empty_hint))
                 } else {
                     LazyColumn {
                         items(playlistUiState.playlists) { playlist ->
                             ListItem(
                                 headlineContent = { Text(playlist.name) },
-                                supportingContent = { Text("${playlist.songCount} 首") },
+                                supportingContent = { Text(stringResource(R.string.playlist_song_count, playlist.songCount)) },
                                 modifier = Modifier.clickable {
                                     if (isBatch) viewModel.batchAddToPlaylist(playlist.id)
                                     else if (pendingVideo != null) viewModel.addToPlaylist(pendingVideo!!, playlist.id)
@@ -83,7 +85,7 @@ fun SearchScreen(
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { showPlaylistDialog = false; pendingVideo = null }) { Text("取消") } }
+            confirmButton = { TextButton(onClick = { showPlaylistDialog = false; pendingVideo = null }) { Text(stringResource(R.string.common_cancel)) } }
         )
     }
 
@@ -91,11 +93,11 @@ fun SearchScreen(
     if (uiState.errorTitle != null && uiState.error != null) {
         AlertDialog(
             onDismissRequest = { viewModel.clearError() },
-            title = { Text(uiState.errorTitle ?: "错误") },
-            text = { Text(uiState.error ?: "未知错误") },
+            title = { Text(uiState.errorTitle ?: stringResource(R.string.common_error)) },
+            text = { Text(uiState.error ?: stringResource(R.string.common_error)) },
             confirmButton = {
                 TextButton(onClick = { viewModel.clearError() }) {
-                    Text("确定")
+                    Text(stringResource(R.string.common_confirm))
                 }
             }
         )
@@ -107,11 +109,11 @@ fun SearchScreen(
         if (uiState.isSelecting) {
             Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)) {
                 Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("已选 ${uiState.selectedIds.size} 项", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-                    TextButton(onClick = { viewModel.selectAll() }) { Text("全选") }
-                    IconButton(onClick = { showPlaylistDialog = true }) { Icon(Icons.Filled.PlaylistAdd, "添加到歌单") }
-                    IconButton(onClick = { viewModel.batchDownload() }) { Icon(Icons.Filled.Download, "下载") }
-                    IconButton(onClick = { viewModel.exitSelectionMode() }) { Icon(Icons.Outlined.Close, "取消") }
+                    Text(stringResource(R.string.playlist_selected_count, uiState.selectedIds.size), modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+                    TextButton(onClick = { viewModel.selectAll() }) { Text(stringResource(R.string.playlist_select_all)) }
+                    IconButton(onClick = { showPlaylistDialog = true }) { Icon(Icons.Filled.PlaylistAdd, stringResource(R.string.player_add_to_playlist)) }
+                    IconButton(onClick = { viewModel.batchDownload() }) { Icon(Icons.Filled.Download, stringResource(R.string.player_download)) }
+                    IconButton(onClick = { viewModel.exitSelectionMode() }) { Icon(Icons.Outlined.Close, stringResource(R.string.common_cancel)) }
                 }
             }
         }
@@ -169,7 +171,7 @@ fun SearchScreen(
                             putExtra(android.content.Intent.EXTRA_TEXT, "https://www.bilibili.com/video/${video.bvid}")
                             putExtra(android.content.Intent.EXTRA_SUBJECT, video.title)
                         }
-                        context.startActivity(android.content.Intent.createChooser(intent, "分享到"))
+                        context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.player_share)))
                     },
                     onAddToPlaylist = { video -> pendingVideo = video; showPlaylistDialog = true },
                     onLongPress = { viewModel.enterSelectionMode(it.bvid) },
@@ -202,12 +204,12 @@ private fun SearchBar(
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        placeholder = { Text("搜索音乐、UP主、视频…") },
-        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "搜索") },
+        placeholder = { Text(stringResource(R.string.search_hint)) },
+        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.tab_search)) },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = onClear) {
-                    Icon(Icons.Outlined.Close, contentDescription = "清除")
+                    Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.common_cancel))
                 }
             }
         },
@@ -249,7 +251,7 @@ private fun SearchHistory(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "暂无搜索记录",
+                        stringResource(R.string.search_no_history),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
@@ -269,7 +271,7 @@ private fun SearchHistory(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 TextButton(onClick = onClearAll) {
-                    Text("清空", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.search_clear_history), style = MaterialTheme.typography.labelMedium)
                 }
             }
 
@@ -288,7 +290,7 @@ private fun SearchHistory(
                             IconButton(onClick = { onDeleteItem(item) }) {
                                 Icon(
                                     Icons.Outlined.Close,
-                                    contentDescription = "删除",
+                                    contentDescription = stringResource(R.string.playlist_delete),
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -343,7 +345,7 @@ private fun SearchResults(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("未找到结果", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.search_no_results), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -434,7 +436,7 @@ private fun SearchResultItem(
             }
 
             BiliAsyncImage(
-                model = video.coverUrl, contentDescription = "封面",
+                model = video.coverUrl, contentDescription = stringResource(R.string.player_cover_art),
                 modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)),
                 contentScale = ContentScale.Crop
             )
@@ -452,13 +454,13 @@ private fun SearchResultItem(
             }
 
             if (!isSelecting) {
-                IconButton(onClick = onPlay) { Icon(Icons.Filled.PlayArrow, "播放", tint = MaterialTheme.colorScheme.primary) }
-                IconButton(onClick = onDownload) { Icon(Icons.Filled.Download, "下载", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                IconButton(onClick = onPlay) { Icon(Icons.Filled.PlayArrow, stringResource(R.string.player_play), tint = MaterialTheme.colorScheme.primary) }
+                IconButton(onClick = onDownload) { Icon(Icons.Filled.Download, stringResource(R.string.player_download), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                 Box {
-                    IconButton(onClick = { showMenu = true }) { Icon(Icons.Filled.MoreVert, "更多", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    IconButton(onClick = { showMenu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.playlist_more), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                         val ctx = androidx.compose.ui.platform.LocalContext.current
-                        DropdownMenuItem(text = { Text("在B站App中打开") }, onClick = {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.search_open_in_bilibili)) }, onClick = {
                             showMenu = false
                             try {
                                 ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
@@ -467,8 +469,8 @@ private fun SearchResultItem(
                                 })
                             } catch (_: Exception) {}
                         }, leadingIcon = { Icon(Icons.Filled.OpenInBrowser, null) })
-                        DropdownMenuItem(text = { Text("分享") }, onClick = { showMenu = false; onShare() }, leadingIcon = { Icon(Icons.Filled.Share, null) })
-                        DropdownMenuItem(text = { Text("添加到歌单") }, onClick = { showMenu = false; onAddToPlaylist() }, leadingIcon = { Icon(Icons.Filled.PlaylistAdd, null) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.player_share)) }, onClick = { showMenu = false; onShare() }, leadingIcon = { Icon(Icons.Filled.Share, null) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.player_add_to_playlist)) }, onClick = { showMenu = false; onAddToPlaylist() }, leadingIcon = { Icon(Icons.Filled.PlaylistAdd, null) })
                     }
                 }
             }

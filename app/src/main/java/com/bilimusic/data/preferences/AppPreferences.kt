@@ -21,7 +21,6 @@ class AppPreferences(private val context: Context) {
         private val KEY_BLUR_DEGREE = floatPreferencesKey("blur_degree")
         private val KEY_PROGRESS_STYLE = stringPreferencesKey("progress_style")
         private val KEY_PLAY_MODE = stringPreferencesKey("play_mode")
-        private val KEY_BILIBILI_COOKIE = stringPreferencesKey("bilibili_cookie")
         private val KEY_SLEEP_TIMER_MILLIS = longPreferencesKey("sleep_timer_millis")
         private val KEY_SLEEP_TIMER_START = longPreferencesKey("sleep_timer_start")
         private val KEY_LAST_PLAYED_SONG_ID = stringPreferencesKey("last_played_song_id")
@@ -106,15 +105,17 @@ class AppPreferences(private val context: Context) {
         }
     }
 
-    // ===== Account =====
-    val bilibiliCookie: Flow<String> = context.dataStore.data.map { prefs ->
-        prefs[KEY_BILIBILI_COOKIE] ?: ""
-    }
+    // ===== Account (encrypted) =====
+    val encryptedCookieStore = EncryptedCookieStore(context)
+
+    /** Bilibili cookie — stored in EncryptedSharedPreferences (AES-256 GCM). */
+    val bilibiliCookie: Flow<String> = encryptedCookieStore.cookie
+
+    /** Current cookie value for synchronous reads. */
+    fun getCookieSync(): String = encryptedCookieStore.get()
 
     suspend fun setBilibiliCookie(cookie: String) {
-        context.dataStore.edit { prefs ->
-            prefs[KEY_BILIBILI_COOKIE] = cookie
-        }
+        encryptedCookieStore.set(cookie)
     }
 
     // ===== Search Sort =====

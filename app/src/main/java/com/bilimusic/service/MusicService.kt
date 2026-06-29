@@ -1,26 +1,52 @@
 package com.bilimusic.service
 
+import android.app.Notification
+import android.app.Service
 import android.content.Intent
-import androidx.media3.session.MediaSessionService
+import android.os.IBinder
+import android.util.Log
 
-class MusicService : MediaSessionService() {
+/**
+ * Foreground service for media playback.
+ * Required by Android 13+ for any app that plays audio in background.
+ * MusicPlayer starts this service and provides the notification via [notifyForeground].
+ */
+class MusicService : Service() {
 
-    // This service is kept minimal - actual playback is in MusicPlayer
-    // The MediaSession is managed by MusicPlayer directly
+    companion object {
+        private const val TAG = "MusicService"
+        private var pendingNotification: Notification? = null
 
-    override fun onCreate() {
-        super.onCreate()
+        /**
+         * Set the notification that [MusicService] should use on next [onStartCommand].
+         * Called by [com.bilimusic.player.MusicPlayer] before starting the service.
+         */
+        fun setNotification(notification: Notification) {
+            pendingNotification = notification
+        }
     }
 
-    override fun onGetSession(controllerInfo: androidx.media3.session.MediaSession.ControllerInfo): androidx.media3.session.MediaSession? {
-        return null // Session is handled by MusicPlayer's MediaSession (legacy API)
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val notification = pendingNotification
+        if (notification != null) {
+            pendingNotification = null
+            try {
+                startForeground(com.bilimusic.player.MusicPlayer.NOTIFICATION_ID, notification)
+                Log.d(TAG, "startForeground called")
+            } catch (e: Exception) {
+                Log.e(TAG, "startForeground failed", e)
+            }
+        } else {
+            // No notification yet — stop service to avoid ANR or crash
+            Log.w(TAG, "startForegroundService called without notification, stopping")
+            stopSelf()
+        }
+        return START_NOT_STICKY
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         stopSelf()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
     }
 }

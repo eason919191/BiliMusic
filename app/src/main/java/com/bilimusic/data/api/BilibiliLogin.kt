@@ -17,7 +17,7 @@ data class QRCodeData(val url: String, val qrcodeKey: String)
 data class UserInfo(val uid: Long = 0, val nickname: String = "", val avatar: String = "", val level: Int = 0, val isLogin: Boolean = false)
 
 object BilibiliLoginClient {
-    val client: OkHttpClient by lazy { BilibiliApiClient.sharedClient() }
+    val client: OkHttpClient by lazy { BilibiliApiClient.okHttpClient() }
 
     private const val APP_KEY = "dfca71928277209b"
     private const val APP_SEC = "b5475a8825547a4fc26c7d518eaaa02e"

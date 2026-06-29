@@ -21,10 +21,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.viewinterop.AndroidView
 import com.bilimusic.data.model.*
+import com.bilimusic.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -55,7 +57,7 @@ fun SettingsScreen(
         item {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "设置",
+                stringResource(R.string.settings_title),
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
@@ -64,13 +66,13 @@ fun SettingsScreen(
 
         // ===== 播放设置 =====
         item {
-            SettingsGroupHeader("播放设置")
+            SettingsGroupHeader(stringResource(R.string.settings_group_playback))
         }
 
         item {
             SettingsSliderItem(
                 icon = Icons.Outlined.BlurOn,
-                title = "模糊程度",
+                title = stringResource(R.string.settings_blur_title),
                 subtitle = "${uiState.blurDegree.toInt()}%",
                 value = uiState.blurDegree / 100f,
                 onValueChange = { viewModel.setBlurDegree(it * 100f) }
@@ -80,18 +82,18 @@ fun SettingsScreen(
         item {
             SettingsItem(
                 icon = Icons.Outlined.ShowChart,
-                title = "进度条样式",
+                title = stringResource(R.string.settings_progress_style),
                 subtitle = uiState.progressBarStyle.displayName,
                 onClick = { showProgressStyleDialog = true }
             )
             val pageTransitions = mapOf(
-                "slide" to "滑动", "fade" to "淡入淡出",
-                "scale" to "缩放", "default" to "默认"
+                "slide" to stringResource(R.string.transition_slide), "fade" to stringResource(R.string.transition_fade),
+                "scale" to stringResource(R.string.transition_scale), "default" to stringResource(R.string.transition_default)
             )
             SettingsItem(
                 icon = Icons.Outlined.Animation,
-                title = "页面过渡动画",
-                subtitle = pageTransitions[uiState.pageTransition] ?: "滑动",
+                title = stringResource(R.string.settings_transition),
+                subtitle = pageTransitions[uiState.pageTransition] ?: stringResource(R.string.transition_slide),
                 onClick = { showPageTransitionDialog = true }
             )
         }
@@ -99,8 +101,8 @@ fun SettingsScreen(
         item {
             SettingsSwitchItem(
                 icon = Icons.Outlined.ColorLens,
-                title = "纯色背景",
-                subtitle = "关闭后使用模糊背景",
+                title = stringResource(R.string.settings_pure_bg),
+                subtitle = stringResource(R.string.settings_pure_bg_desc),
                 checked = uiState.playerBgPureColor,
                 onCheckedChange = { viewModel.setPlayerBgPureColor(it) }
             )
@@ -108,16 +110,16 @@ fun SettingsScreen(
 
         // ===== 外观 =====
         item {
-            SettingsGroupHeader("外观")
+            SettingsGroupHeader(stringResource(R.string.settings_group_appearance))
         }
 
         item {
             SettingsItem(
                 icon = Icons.Outlined.Palette,
-                title = "主题色",
+                title = stringResource(R.string.settings_theme_color),
                 subtitle = when {
-                    uiState.useDynamicColor -> "动态取色"
-                    else -> "自定义"
+                    uiState.useDynamicColor -> stringResource(R.string.settings_dynamic_color)
+                    else -> stringResource(R.string.settings_theme_custom)
                 },
                 onClick = { showThemeDialog = true }
             )
@@ -126,11 +128,11 @@ fun SettingsScreen(
         item {
             SettingsClickableItem(
                 icon = Icons.Outlined.DarkMode,
-                title = "深色模式",
+                title = stringResource(R.string.settings_dark_mode),
                 subtitle = when (uiState.themeMode) {
-                    ThemeMode.SYSTEM -> "跟随系统"
-                    ThemeMode.LIGHT -> "浅色"
-                    ThemeMode.DARK -> "深色"
+                    ThemeMode.SYSTEM -> stringResource(R.string.settings_dark_follow)
+                    ThemeMode.LIGHT -> stringResource(R.string.settings_dark_light)
+                    ThemeMode.DARK -> stringResource(R.string.settings_dark_dark)
                 }
             ) {
                 // Quick toggle cycling through modes
@@ -144,16 +146,16 @@ fun SettingsScreen(
 
         // ===== 账号管理 =====
         item {
-            SettingsGroupHeader("账号管理")
+            SettingsGroupHeader(stringResource(R.string.settings_group_account))
         }
 
         item {
             SettingsItem(
                 icon = Icons.Outlined.AccountCircle,
-                title = "哔哩哔哩账号",
+                title = stringResource(R.string.settings_bili_account),
                 subtitle = if (uiState.isLoggedIn) {
-                    uiState.userInfo?.let { "${it.nickname} (Lv.${it.level})" } ?: "已登录"
-                } else "未登录",
+                    uiState.userInfo?.let { "${it.nickname} (Lv.${it.level})" } ?: stringResource(R.string.settings_bili_logged_in)
+                } else stringResource(R.string.settings_bili_not_logged_in),
                 onClick = { showCookieDialog = true }
             )
         }
@@ -166,7 +168,7 @@ fun SettingsScreen(
                     if (uiState.userInfo!!.avatar.isNotBlank()) {
                         com.bilimusic.ui.components.BiliAsyncImage(
                             model = uiState.userInfo!!.avatar,
-                            contentDescription = "头像",
+                            contentDescription = stringResource(R.string.settings_avatar),
                             modifier = Modifier.size(40.dp).clip(androidx.compose.foundation.shape.CircleShape)
                         )
                     }
@@ -183,8 +185,8 @@ fun SettingsScreen(
             item {
                 SettingsItem(
                     icon = Icons.Outlined.Bookmark,
-                    title = "导入收藏夹",
-                    subtitle = "将B站收藏夹导入为歌单",
+                    title = stringResource(R.string.settings_import_fav),
+                    subtitle = stringResource(R.string.settings_import_fav_desc),
                     onClick = {
                         viewModel.loadFavoriteFolders()
                         showFolderSelectDialog = true
@@ -195,8 +197,8 @@ fun SettingsScreen(
             item {
                 SettingsItem(
                     icon = Icons.Outlined.Logout,
-                    title = "退出登录",
-                    subtitle = "清除Cookie",
+                    title = stringResource(R.string.settings_logout),
+                    subtitle = stringResource(R.string.settings_logout_desc),
                     onClick = { viewModel.logoutBilibili() }
                 )
             }
@@ -204,14 +206,14 @@ fun SettingsScreen(
 
         // ===== 音乐管理 =====
         item {
-            SettingsGroupHeader("音乐管理")
+            SettingsGroupHeader(stringResource(R.string.settings_group_music))
         }
 
         item {
             SettingsItem(
                 icon = Icons.Outlined.LibraryMusic,
-                title = "导入本地音乐",
-                subtitle = if (uiState.isImportingLocal) "导入中..." else "扫描设备中的音乐文件",
+                title = stringResource(R.string.settings_import_local),
+                subtitle = if (uiState.isImportingLocal) stringResource(R.string.settings_import_local_progress) else stringResource(R.string.settings_import_local_desc),
                 onClick = { viewModel.importLocalMusic() },
                 enabled = !uiState.isImportingLocal
             )
@@ -233,7 +235,7 @@ fun SettingsScreen(
             }
             SettingsItem(
                 icon = Icons.Outlined.Folder,
-                title = "下载位置",
+                title = stringResource(R.string.settings_download_path),
                 subtitle = uiState.downloadPath.ifBlank { "Music/BiliMusic" },
                 onClick = { launcher.launch(null) }
             )
@@ -249,7 +251,7 @@ fun SettingsScreen(
                         modifier = Modifier.weight(1f)
                     )
                     TextButton(onClick = { viewModel.setDownloadPath("") }) {
-                        Text("恢复默认", style = MaterialTheme.typography.labelSmall)
+                        Text(stringResource(R.string.settings_download_path_reset), style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
@@ -257,38 +259,44 @@ fun SettingsScreen(
 
         // ===== 定时关闭 =====
         item {
-            SettingsGroupHeader("定时关闭")
+            SettingsGroupHeader(stringResource(R.string.settings_group_timer))
         }
 
         item {
             SettingsItem(
                 icon = Icons.Outlined.Timer,
-                title = "定时关闭",
+                title = stringResource(R.string.settings_timer),
                 subtitle = if (uiState.isTimerActive) {
                     val min = uiState.sleepTimerRemaining / 60000
                     val sec = (uiState.sleepTimerRemaining % 60000) / 1000
-                    "剩余 ${String.format("%02d:%02d", min, sec)}"
-                } else "关闭",
+                    stringResource(R.string.settings_timer_remaining, String.format("%02d:%02d", min, sec))
+                } else stringResource(R.string.settings_timer_off),
                 onClick = { showTimerDialog = true }
             )
         }
 
         // ===== 搜索 =====
-        item { SettingsGroupHeader("搜索") }
+        item { SettingsGroupHeader(stringResource(R.string.settings_group_search)) }
         item {
             SettingsItem(
                 icon = Icons.Outlined.Sort,
-                title = "排序方式",
-                subtitle = searchSortDisplay(uiState.searchSort),
+                title = stringResource(R.string.settings_search_sort),
+                subtitle = when (uiState.searchSort) {
+                    "click" -> stringResource(R.string.settings_sort_click)
+                    "stow" -> stringResource(R.string.settings_sort_stow)
+                    "dm" -> stringResource(R.string.settings_sort_dm)
+                    "pubdate" -> stringResource(R.string.settings_sort_pubdate)
+                    else -> stringResource(R.string.settings_sort_totalrank)
+                },
                 onClick = { showSearchSortDialog = true }
             )
         }
-        item { SettingsGroupHeader("搜索筛选") }
+        item { SettingsGroupHeader(stringResource(R.string.settings_search_filters)) }
         item {
             SettingsSwitchItem(
                 icon = Icons.Outlined.FilterList,
-                title = "过滤超长视频",
-                subtitle = "默认隐藏10分钟以上的视频",
+                title = stringResource(R.string.search_filter_long),
+                subtitle = stringResource(R.string.search_filter_long_desc),
                 checked = uiState.filterLongVideos,
                 onCheckedChange = { viewModel.setFilterLongVideos(it) }
             )
@@ -296,8 +304,8 @@ fun SettingsScreen(
         item {
             SettingsSwitchItem(
                 icon = Icons.Outlined.Loop,
-                title = "过滤\"循环\"标题",
-                subtitle = "默认隐藏标题含\"循环\"的视频",
+                title = stringResource(R.string.search_filter_loop),
+                subtitle = stringResource(R.string.search_filter_loop_desc),
                 checked = uiState.filterLoopTitle,
                 onCheckedChange = { viewModel.setFilterLoopTitle(it) }
             )
@@ -307,28 +315,28 @@ fun SettingsScreen(
             var kwText by remember { mutableStateOf(uiState.filterKeywords) }
             SettingsItem(
                 icon = Icons.Outlined.Block,
-                title = "自定义过滤词",
-                subtitle = if (uiState.filterKeywords.isBlank()) "点击设置，用|分隔多个词" else uiState.filterKeywords,
+                title = stringResource(R.string.search_filter_keywords),
+                subtitle = if (uiState.filterKeywords.isBlank()) stringResource(R.string.search_filter_keywords_hint) else uiState.filterKeywords,
                 onClick = { kwText = uiState.filterKeywords; showKwDialog = true }
             )
             if (showKwDialog) {
-                AlertDialog(onDismissRequest = { showKwDialog = false }, title = { Text("自定义过滤词") },
-                    text = { OutlinedTextField(value = kwText, onValueChange = { kwText = it }, label = { Text("过滤词（|分隔）") }, modifier = Modifier.fillMaxWidth()) },
-                    confirmButton = { TextButton(onClick = { viewModel.setFilterKeywords(kwText); showKwDialog = false }) { Text("确定") } },
-                    dismissButton = { TextButton(onClick = { showKwDialog = false }) { Text("取消") } })
+                AlertDialog(onDismissRequest = { showKwDialog = false }, title = { Text(stringResource(R.string.search_filter_keywords)) },
+                    text = { OutlinedTextField(value = kwText, onValueChange = { kwText = it }, label = { Text(stringResource(R.string.search_filter_keywords_label)) }, modifier = Modifier.fillMaxWidth()) },
+                    confirmButton = { TextButton(onClick = { viewModel.setFilterKeywords(kwText); showKwDialog = false }) { Text(stringResource(R.string.common_confirm)) } },
+                    dismissButton = { TextButton(onClick = { showKwDialog = false }) { Text(stringResource(R.string.common_cancel)) } })
             }
         }
 
         // ===== 关于 =====
         item {
-            SettingsGroupHeader("关于")
+            SettingsGroupHeader(stringResource(R.string.settings_group_about))
         }
 
         item {
             SettingsItem(
                 icon = Icons.Outlined.Info,
-                title = "关于 BiliMusic",
-                subtitle = "v1.0.0",
+                title = stringResource(R.string.settings_about),
+                subtitle = stringResource(R.string.settings_version),
                 onClick = {}
             )
         }
@@ -380,7 +388,16 @@ fun SettingsScreen(
     }
 
     if (showSearchSortDialog) {
-        SimpleSelectDialog("排序方式", listOf("totalrank" to "综合", "click" to "播放量", "stow" to "收藏数", "dm" to "弹幕数", "pubdate" to "发布日期"), uiState.searchSort,
+        SimpleSelectDialog(
+            stringResource(R.string.settings_search_sort),
+            listOf(
+                "totalrank" to stringResource(R.string.settings_sort_totalrank),
+                "click" to stringResource(R.string.settings_sort_click),
+                "stow" to stringResource(R.string.settings_sort_stow),
+                "dm" to stringResource(R.string.settings_sort_dm),
+                "pubdate" to stringResource(R.string.settings_sort_pubdate)
+            ),
+            uiState.searchSort,
             onSelect = { viewModel.setSearchSort(it); showSearchSortDialog = false },
             onDismiss = { showSearchSortDialog = false })
     }
@@ -413,7 +430,11 @@ fun SettingsScreen(
         ThemeDialog(
             useDynamicColor = uiState.useDynamicColor,
             onToggleDynamic = { viewModel.setUseDynamicColor(it) },
-            onSelectColor = { viewModel.setSeedColor(it) },
+            onSelectColor = { color ->
+                viewModel.setSeedColor(color)
+                viewModel.setUseDynamicColor(true) // 选色后启用自定义主题
+                showThemeDialog = false
+            },
             onDismiss = { showThemeDialog = false }
         )
     }
@@ -431,8 +452,13 @@ fun SettingsScreen(
 
     if (showPageTransitionDialog) {
         SimpleSelectDialog(
-            title = "页面过渡动画",
-            options = listOf("slide" to "滑动", "fade" to "淡入淡出", "scale" to "缩放", "default" to "默认"),
+            title = stringResource(R.string.settings_transition),
+            options = listOf(
+                "slide" to stringResource(R.string.transition_slide),
+                "fade" to stringResource(R.string.transition_fade),
+                "scale" to stringResource(R.string.transition_scale),
+                "default" to stringResource(R.string.transition_default)
+            ),
             current = uiState.pageTransition,
             onSelect = {
                 viewModel.setPageTransition(it)
@@ -574,7 +600,7 @@ private fun CookieDialog(
     onWebLogin: (() -> Unit)? = null
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("扫码", "短信")
+    val tabs = listOf(stringResource(R.string.login_tab_qr), stringResource(R.string.login_tab_sms))
     val scope = rememberCoroutineScope()
 
     // Password state
@@ -594,6 +620,10 @@ private fun CookieDialog(
     var geetestGt by remember { mutableStateOf("") }
     var geetestChallenge by remember { mutableStateOf("") }
     var geetestToken by remember { mutableStateOf("") }
+    // 预解析字符串（供非 Composable lambda 中使用）
+    val strLoginCancel = stringResource(R.string.login_cancel)
+    val strSmsSending = stringResource(R.string.login_sms_sending)
+    val strSmsSent = stringResource(R.string.login_sms_sent)
 
     LaunchedEffect(smsCountdown) {
         if (smsCountdown > 0) { kotlinx.coroutines.delay(1000); smsCountdown-- }
@@ -606,13 +636,13 @@ private fun CookieDialog(
     if (showGeetest) {
         PiliPlusGeetestDialog(
             gt = geetestGt, challenge = geetestChallenge,
-            onDismiss = { showGeetest = false; smsMsg = "已取消" },
+            onDismiss = { showGeetest = false; smsMsg = strLoginCancel },
             onSuccess = { gc, gv, gs ->
                 showGeetest = false
                 scope.launch {
-                    smsLoading = true; smsMsg = "正在发送..."
+                    smsLoading = true; smsMsg = strSmsSending
                     val (ok, msg) = com.bilimusic.data.api.BilibiliLoginClient.sendSmsWithGeetest(phone, geetestToken, gc, gv, gs)
-                    if (ok) { smsCaptchaKey = msg; smsCountdown = 60; smsMsg = "已发送" }
+                    if (ok) { smsCaptchaKey = msg; smsCountdown = 60; smsMsg = strSmsSent }
                     else smsMsg = msg
                     smsLoading = false
                 }
@@ -624,7 +654,7 @@ private fun CookieDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Outlined.AccountCircle, null) },
-        title = { Text("B站账号登录") },
+        title = { Text(stringResource(R.string.login_title)) },
         text = {
             Column {
                 TabRow(selectedTabIndex = selectedTab) {
@@ -655,19 +685,19 @@ private fun CookieDialog(
                             }, modifier = Modifier.fillMaxWidth()) {
                                 Icon(Icons.Filled.OpenInBrowser, null, Modifier.size(20.dp))
                                 Spacer(Modifier.width(8.dp))
-                                Text("打开B站App登录")
+                                Text(stringResource(R.string.login_open_app))
                             }
                             Spacer(Modifier.height(12.dp))
                             if (state.qrCodeBitmap != null) Image(bitmap = state.qrCodeBitmap!!.asImageBitmap(), contentDescription = "QR", modifier = Modifier.size(180.dp))
                             else CircularProgressIndicator(Modifier.size(180.dp))
-                            Text(state.qrCodeMessage.ifBlank { "获取二维码..." }, style = MaterialTheme.typography.bodySmall)
+                            Text(state.qrCodeMessage.ifBlank { stringResource(R.string.login_qr_fetching) }, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                     1 -> {
                         Button(onClick = { onDismiss(); onWebLogin?.invoke() }, modifier = Modifier.fillMaxWidth()) {
                             Icon(Icons.Filled.Language, null, Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("打开B站网页登录")
+                            Text(stringResource(R.string.login_open_web))
                         }
                     }
                 }
@@ -675,7 +705,7 @@ private fun CookieDialog(
         },
         confirmButton = {
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("关闭") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.login_close)) } }
     )
 }
 
@@ -688,13 +718,13 @@ private fun BiliLoginWebView(
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().statusBarsPadding().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, "关闭") }
-                Text("B站登录", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, stringResource(R.string.login_close)) }
+                Text(stringResource(R.string.login_web_title), Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
                 TextButton(onClick = {
                     val cm = android.webkit.CookieManager.getInstance()
                     val cookies = cm.getCookie("https://passport.bilibili.com") ?: ""
                     if (cookies.contains("SESSDATA")) onLoginSuccess(cookies)
-                }) { Text("已登录") }
+                }) { Text(stringResource(R.string.login_done)) }
             }
             if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
             AndroidView(factory = { ctx ->
@@ -712,8 +742,6 @@ private fun BiliLoginWebView(
     }
 }
 
-private fun searchSortDisplay(sort: String) = when(sort) { "click"->"播放量"; "stow"->"收藏数"; "dm"->"弹幕数"; "pubdate"->"发布日期"; else->"综合" }
-
 @Composable
 private fun SimpleCaptchaWebView(
     url: String, phone: String, onDismiss: () -> Unit, onSmsSent: () -> Unit
@@ -725,7 +753,7 @@ private fun SimpleCaptchaWebView(
         indication = null, onClick = {}
     )) {
         Column(Modifier.fillMaxSize().padding(32.dp).align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("请完成滑块验证", color = Color.White, style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.login_captcha_hint), color = Color.White, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 AndroidView(factory = { ctx ->
@@ -761,10 +789,10 @@ private fun SimpleCaptchaWebView(
                     com.bilimusic.data.api.BilibiliApiClient.userCookie = cookies
                 }
                 onSmsSent()
-            }, modifier = Modifier.fillMaxWidth()) { Text("验证完成，发短信") }
+            }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.login_captcha_done)) }
         }
         IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
-            Icon(Icons.Filled.Close, "关闭", tint = Color.White, modifier = Modifier.size(28.dp))
+            Icon(Icons.Filled.Close, stringResource(R.string.login_close), tint = Color.White, modifier = Modifier.size(28.dp))
         }
     }
 }
@@ -782,7 +810,7 @@ private fun PiliPlusGeetestDialog(
     LaunchedEffect(gt) {
         withContext(Dispatchers.IO) {
             try {
-                val client = com.bilimusic.data.api.BilibiliApiClient.sharedClient()
+                val client = com.bilimusic.data.api.BilibiliApiClient.okHttpClient()
                 val resp = client.newCall(okhttp3.Request.Builder()
                     .url("https://api.geetest.com/gettype.php?gt=$gt")
                     .addHeader("User-Agent", "Mozilla/5.0")
@@ -854,7 +882,7 @@ private fun PiliPlusGeetestDialog(
         }, modifier = Modifier.fillMaxSize().padding(32.dp).align(Alignment.Center))
         // 关闭按钮
         IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
-            Icon(Icons.Filled.Close, "关闭", tint = Color.White, modifier = Modifier.size(28.dp))
+            Icon(Icons.Filled.Close, stringResource(R.string.login_close), tint = Color.White, modifier = Modifier.size(28.dp))
         }
     }
 }
@@ -866,7 +894,7 @@ private fun GeetestWebView(
     var loading by remember { mutableStateOf(true) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("请完成滑块验证") },
+        title = { Text(stringResource(R.string.login_captcha_hint)) },
         text = {
             Box(Modifier.fillMaxWidth().height(300.dp)) {
                 if (loading) CircularProgressIndicator(Modifier.align(Alignment.Center))
@@ -882,8 +910,8 @@ private fun GeetestWebView(
                 }, modifier = Modifier.fillMaxSize())
             }
         },
-        confirmButton = { TextButton(onClick = onVerified) { Text("验证完成") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+        confirmButton = { TextButton(onClick = onVerified) { Text(stringResource(R.string.login_captcha_done)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } }
     )
 }
 
@@ -901,7 +929,7 @@ private fun QRLoginDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("扫码登录") },
+        title = { Text(stringResource(R.string.login_qr_title)) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                 if (state.qrCodeBitmap != null) {
@@ -918,13 +946,13 @@ private fun QRLoginDialog(
                     }
                 }
                 Text(
-                    state.qrCodeMessage.ifBlank { "获取二维码中..." },
+                    state.qrCodeMessage.ifBlank { stringResource(R.string.login_qr_fetching) },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } }
     )
 }
 
@@ -935,12 +963,12 @@ private fun TimerDialog(
     onDismiss: () -> Unit
 ) {
     val timerOptions = listOf(
-        15L * 60 * 1000 to "15分钟",
-        30L * 60 * 1000 to "30分钟",
-        45L * 60 * 1000 to "45分钟",
-        60L * 60 * 1000 to "60分钟",
-        90L * 60 * 1000 to "90分钟",
-        120L * 60 * 1000 to "120分钟"
+        15L * 60 * 1000 to stringResource(R.string.timer_15min),
+        30L * 60 * 1000 to stringResource(R.string.timer_30min),
+        45L * 60 * 1000 to stringResource(R.string.timer_45min),
+        60L * 60 * 1000 to stringResource(R.string.timer_60min),
+        90L * 60 * 1000 to stringResource(R.string.timer_90min),
+        120L * 60 * 1000 to stringResource(R.string.timer_120min)
     )
     var showCustomDialog by remember { mutableStateOf(false) }
     var customMins by remember { mutableStateOf("") }
@@ -948,12 +976,12 @@ private fun TimerDialog(
     if (showCustomDialog) {
         AlertDialog(
             onDismissRequest = { showCustomDialog = false },
-            title = { Text("自定义时间") },
+            title = { Text(stringResource(R.string.settings_timer_custom_title)) },
             text = {
                 OutlinedTextField(
                     value = customMins,
                     onValueChange = { customMins = it.filter { c -> c.isDigit() } },
-                    label = { Text("分钟") },
+                    label = { Text(stringResource(R.string.settings_timer_minutes)) },
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -966,21 +994,21 @@ private fun TimerDialog(
                         onSelect(mins * 60 * 1000)
                         showCustomDialog = false
                     }
-                }) { Text("确定") }
+                }) { Text(stringResource(R.string.common_confirm)) }
             },
-            dismissButton = { TextButton(onClick = { showCustomDialog = false }) { Text("取消") } }
+            dismissButton = { TextButton(onClick = { showCustomDialog = false }) { Text(stringResource(R.string.common_cancel)) } }
         )
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("定时关闭") },
+        title = { Text(stringResource(R.string.settings_timer)) },
         text = {
             Column {
                 TextButton(onClick = onClear, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Filled.Close, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("关闭定时", Modifier.weight(1f))
+                    Text(stringResource(R.string.settings_timer_turn_off), Modifier.weight(1f))
                 }
                 Divider()
                 timerOptions.forEach { (millis, label) ->
@@ -994,12 +1022,12 @@ private fun TimerDialog(
                 TextButton(onClick = { showCustomDialog = true }, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Filled.Edit, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("自定义…", Modifier.weight(1f))
+                    Text(stringResource(R.string.settings_timer_custom), Modifier.weight(1f))
                 }
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } }
     )
 }
 
@@ -1011,28 +1039,28 @@ private fun ThemeDialog(
     onDismiss: () -> Unit
 ) {
     val presetColors = listOf(
-        0xFF6750A4.toInt() to "默认紫",
-        0xFFE91E63.toInt() to "粉色",
-        0xFFFF5722.toInt() to "橙色",
-        0xFFFFEB3B.toInt() to "黄色",
-        0xFF4CAF50.toInt() to "绿色",
-        0xFF2196F3.toInt() to "蓝色",
-        0xFF00BCD4.toInt() to "青色",
-        0xFF9C27B0.toInt() to "紫色",
-        0xFF607D8B.toInt() to "灰蓝",
-        0xFF000000.toInt() to "黑白"
+        0xFF6750A4.toInt() to stringResource(R.string.color_default_purple),
+        0xFFE91E63.toInt() to stringResource(R.string.color_pink),
+        0xFFFF5722.toInt() to stringResource(R.string.color_orange),
+        0xFFFFEB3B.toInt() to stringResource(R.string.color_yellow),
+        0xFF4CAF50.toInt() to stringResource(R.string.color_green),
+        0xFF2196F3.toInt() to stringResource(R.string.color_blue),
+        0xFF00BCD4.toInt() to stringResource(R.string.color_cyan),
+        0xFF9C27B0.toInt() to stringResource(R.string.color_purple),
+        0xFF607D8B.toInt() to stringResource(R.string.color_grey_blue),
+        0xFF000000.toInt() to stringResource(R.string.color_black_white)
     )
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("主题色设置") },
+        title = { Text(stringResource(R.string.settings_color_dialog_title)) },
         text = {
             Column {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("动态取色（壁纸）", modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.settings_color_dynamic_wallpaper), modifier = Modifier.weight(1f))
                     Switch(checked = useDynamicColor, onCheckedChange = onToggleDynamic)
                 }
 
@@ -1040,7 +1068,7 @@ private fun ThemeDialog(
 
                 if (!useDynamicColor) {
                     Text(
-                        "选择主题色",
+                        stringResource(R.string.settings_color_choose),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1072,7 +1100,7 @@ private fun ThemeDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("完成") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.settings_color_done)) }
         }
     )
 }
@@ -1108,7 +1136,7 @@ private fun SimpleSelectDialog(
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } }
     )
 }
 
@@ -1120,7 +1148,7 @@ private fun ProgressStyleDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("进度条样式") },
+        title = { Text(stringResource(R.string.settings_progress_style)) },
         text = {
             Column {
                 ProgressBarStyle.values().forEach { style ->
@@ -1142,7 +1170,7 @@ private fun ProgressStyleDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
         }
     )
 }
@@ -1156,7 +1184,7 @@ private fun FolderSelectDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("选择收藏夹") },
+        title = { Text(stringResource(R.string.folder_select_title)) },
         text = {
             if (isLoading) {
                 Box(
@@ -1166,13 +1194,13 @@ private fun FolderSelectDialog(
                     CircularProgressIndicator()
                 }
             } else if (folders.isEmpty()) {
-                Text("未找到收藏夹")
+                Text(stringResource(R.string.folder_no_folders))
             } else {
                 LazyColumn {
                     items(folders) { folder ->
                         ListItem(
                             headlineContent = { Text(folder.title) },
-                            supportingContent = { Text("${folder.songCount} 个视频") },
+                            supportingContent = { Text(stringResource(R.string.folder_video_count, folder.songCount)) },
                             modifier = Modifier.clickable { onSelect(folder.id) }
                         )
                     }
@@ -1180,7 +1208,7 @@ private fun FolderSelectDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
         }
     )
 }

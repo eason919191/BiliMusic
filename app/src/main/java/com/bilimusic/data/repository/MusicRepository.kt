@@ -178,6 +178,7 @@ class MusicRepository @Inject constructor(
     fun getSearchHistory(): Flow<List<SearchHistory>> = musicDao.getSearchHistory()
 
     suspend fun addSearchHistory(query: String) {
+        musicDao.deleteSearchHistoryByQuery(query)   // 去重：先删旧记录
         musicDao.addSearchHistory(SearchHistory(query = query))
     }
 

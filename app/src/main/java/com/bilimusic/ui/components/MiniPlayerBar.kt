@@ -15,9 +15,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.bilimusic.R
 import com.bilimusic.ui.components.BiliAsyncImage
 import com.bilimusic.data.model.Music
 
@@ -55,7 +57,7 @@ fun MiniPlayerBar(
                 if (currentSong?.coverUrl != null) {
                     BiliAsyncImage(
                         model = currentSong.coverUrl,
-                        contentDescription = "封面",
+                        contentDescription = stringResource(R.string.player_cover_art),
                         modifier = Modifier
                             .size(48.dp)
                             .clip(RoundedCornerShape(8.dp)),
@@ -89,7 +91,7 @@ fun MiniPlayerBar(
                 IconButton(onClick = onPlayPauseClick) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        contentDescription = if (isPlaying) "暂停" else "播放",
+                        contentDescription = if (isPlaying) stringResource(R.string.player_pause) else stringResource(R.string.player_play),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -97,7 +99,7 @@ fun MiniPlayerBar(
                 IconButton(onClick = onNextClick) {
                     Icon(
                         imageVector = Icons.Filled.SkipNext,
-                        contentDescription = "下一首",
+                        contentDescription = stringResource(R.string.player_next),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

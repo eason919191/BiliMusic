@@ -14,11 +14,12 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 import com.bilimusic.MainActivity
+import com.bilimusic.data.api.BilibiliApiClient
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.bilimusic.data.model.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import java.net.HttpURLConnection
+import okhttp3.Request
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -46,16 +47,17 @@ class MusicPlayer @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var mediaSession: MediaSessionCompat? = null
     private var notificationManager: NotificationManager? = null
-    private val NOTIFICATION_ID = 1
+    internal companion object { const val NOTIFICATION_ID = 1 }
     private var notificationJob: Job? = null
+    private var isServiceStarted = false
 
     init {
         notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         // 通知渠道
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            NotificationChannel("playback", "音乐播放", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "播放控制"
+            NotificationChannel("playback", context.getString(com.bilimusic.R.string.notif_channel_playback_name), NotificationManager.IMPORTANCE_LOW).apply {
+                description = context.getString(com.bilimusic.R.string.notif_channel_playback_desc)
                 setShowBadge(false)
             }.let { notificationManager?.createNotificationChannel(it) }
         }
@@ -74,14 +76,24 @@ class MusicPlayer @Inject constructor(
             isActive = true
         }
 
-        // 位置更新
+        // 位置更新 — 仅在播放时高频轮询,暂停时每2秒检查一次恢复播放
         scope.launch {
+            var wasPlaying = false
             while (isActive) {
-                delay(250)
                 val mp = mediaPlayer
-                if (mp != null && mp.isPlaying) {
-                    _currentPosition.value = mp.currentPosition.toLong().coerceAtLeast(0)
+                val playing = mp?.isPlaying == true
+                if (playing) {
+                    _currentPosition.value = mp!!.currentPosition.toLong().coerceAtLeast(0)
                     _duration.value = mp.duration.toLong().coerceAtLeast(0)
+                    wasPlaying = true
+                    delay(250)
+                } else {
+                    if (wasPlaying) {
+                        // 刚刚暂停,立即再刷新一次确保界面准确
+                        _currentPosition.value = mp?.currentPosition?.toLong()?.coerceAtLeast(0) ?: 0L
+                        wasPlaying = false
+                    }
+                    delay(2000) // 暂停时降低轮询频率
                 }
             }
         }
@@ -125,21 +137,24 @@ class MusicPlayer @Inject constructor(
             Intent(context, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_SINGLE_TOP },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
-        // 异步加载封面图
+        // 异步加载封面图（复用共享 OkHttpClient，可获得连接池和缓存）
         if (song?.coverUrl != null && coverBitmap == null) {
             scope.launch(Dispatchers.IO) {
                 try {
-                    val url = song.coverUrl
-                    val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                    conn.setRequestProperty("Referer", "https://www.bilibili.com/")
-                    conn.setRequestProperty("User-Agent", "Mozilla/5.0")
-                    conn.connectTimeout = 5000
-                    conn.readTimeout = 5000
-                    val input = conn.inputStream
-                    coverBitmap = android.graphics.BitmapFactory.decodeStream(input)
-                    input.close()
-                    conn.disconnect()
-                    withContext(Dispatchers.Main) { updateNotification(song, playing) }
+                    val request = Request.Builder().url(song.coverUrl)
+                        .addHeader("Referer", "https://www.bilibili.com/")
+                        .addHeader("User-Agent", "Mozilla/5.0")
+                        .build()
+                    val response = BilibiliApiClient.okHttpClient().newCall(request).execute()
+                    val input = response.body?.byteStream()
+                    if (input != null) {
+                        coverBitmap = android.graphics.BitmapFactory.decodeStream(input)
+                        input.close()
+                    }
+                    response.close()
+                    if (coverBitmap != null) {
+                        withContext(Dispatchers.Main) { updateNotification(song, playing) }
+                    }
                 } catch (_: Exception) { coverBitmap = null }
             }
         }
@@ -155,15 +170,17 @@ class MusicPlayer @Inject constructor(
             .setStyle(androidx.media.app.NotificationCompat.MediaStyle()
                 .setMediaSession(session.sessionToken)
                 .setShowActionsInCompactView(0, 1, 2))
-            .addAction(android.R.drawable.ic_media_previous, "上一首", null)
+            .addAction(android.R.drawable.ic_media_previous, context.getString(com.bilimusic.R.string.player_previous), null)
             .addAction(if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
-                if (playing) "暂停" else "播放", null)
-            .addAction(android.R.drawable.ic_media_next, "下一首", null)
+                if (playing) context.getString(com.bilimusic.R.string.player_pause) else context.getString(com.bilimusic.R.string.player_play), null)
+            .addAction(android.R.drawable.ic_media_next, context.getString(com.bilimusic.R.string.player_next), null)
             .apply {
                 if (coverBitmap != null) setLargeIcon(coverBitmap)
             }
             .build()
 
+        // 将通知交给前台服务（可能尚未调用 startForeground）
+        com.bilimusic.service.MusicService.setNotification(notification)
         notificationManager?.notify(NOTIFICATION_ID, notification)
     }
 
@@ -176,6 +193,16 @@ class MusicPlayer @Inject constructor(
             _currentSong.value = song
             val url = song.url ?: song.localPath ?: ""
             if (url.isBlank()) { _error.value = "没有可播放的音频"; return }
+
+            // 启动前台服务（Android 13+ 必须）
+            if (!isServiceStarted) {
+                try {
+                    context.startForegroundService(Intent(context, com.bilimusic.service.MusicService::class.java))
+                    isServiceStarted = true
+                } catch (e: Exception) {
+                    Log.e("MusicPlayer", "startForegroundService failed", e)
+                }
+            }
 
             releaseMediaPlayer()
             createMediaPlayer()
@@ -282,7 +309,20 @@ class MusicPlayer @Inject constructor(
     }
 
     fun setPlayMode(mode: PlayMode) { _playMode.value = mode }
-    fun stop() { releaseMediaPlayer(); _isPlaying.value = false; _currentPosition.value = 0L }
+    fun stop() {
+        releaseMediaPlayer()
+        _isPlaying.value = false
+        _currentPosition.value = 0L
+        // 清除通知并停止前台服务
+        notificationManager?.cancel(NOTIFICATION_ID)
+        if (isServiceStarted) {
+            try {
+                context.stopService(Intent(context, com.bilimusic.service.MusicService::class.java))
+            } catch (_: Exception) {}
+            isServiceStarted = false
+        }
+        coverBitmap = null
+    }
     fun release() { scope.cancel(); releaseMediaPlayer(); mediaSession?.release() }
     fun addToPlaylist(songs: List<Music>) { _playlist.value = _playlist.value + songs }
     fun removeFromPlaylist(index: Int) {

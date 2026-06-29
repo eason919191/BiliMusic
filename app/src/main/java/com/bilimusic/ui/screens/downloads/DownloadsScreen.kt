@@ -15,8 +15,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.bilimusic.R
 import com.bilimusic.ui.components.BiliAsyncImage
 import com.bilimusic.data.model.DownloadStatus
 import com.bilimusic.data.model.DownloadTask
@@ -39,12 +41,12 @@ fun DownloadsScreen(
         ) {
             Column {
                 Text(
-                    "下载管理",
+                    stringResource(R.string.downloads_title),
                     style = MaterialTheme.typography.titleLarge
                 )
                 if (uiState.activeCount > 0) {
                     Text(
-                        "${uiState.activeCount} 个任务进行中",
+                        stringResource(R.string.downloads_active_count, uiState.activeCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -56,21 +58,21 @@ fun DownloadsScreen(
                         onClick = { viewModel.startAll() },
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     ) {
-                        Icon(Icons.Filled.PlayArrow, contentDescription = "全部开始", modifier = Modifier.size(18.dp))
+                        Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.downloads_start_all), modifier = Modifier.size(18.dp))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     SmallFloatingActionButton(
                         onClick = { viewModel.pauseAll() },
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     ) {
-                        Icon(Icons.Filled.Pause, contentDescription = "全部暂停", modifier = Modifier.size(18.dp))
+                        Icon(Icons.Filled.Pause, contentDescription = stringResource(R.string.downloads_pause_all), modifier = Modifier.size(18.dp))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     SmallFloatingActionButton(
                         onClick = { viewModel.deleteAll() },
                         containerColor = MaterialTheme.colorScheme.errorContainer
                     ) {
-                        Icon(Icons.Filled.DeleteSweep, contentDescription = "全部删除", modifier = Modifier.size(18.dp))
+                        Icon(Icons.Filled.DeleteSweep, contentDescription = stringResource(R.string.downloads_delete_all), modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -90,12 +92,12 @@ fun DownloadsScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        "暂无下载任务",
+                        stringResource(R.string.downloads_empty),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                     Text(
-                        "在搜索结果中点击下载按钮添加",
+                        stringResource(R.string.downloads_empty_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     )
@@ -113,7 +115,7 @@ fun DownloadsScreen(
                 if (activeTasks.isNotEmpty()) {
                     item {
                         Text(
-                            "下载中",
+                            stringResource(R.string.downloads_section_active),
                             style = MaterialTheme.typography.titleSmall,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             color = MaterialTheme.colorScheme.primary
@@ -135,7 +137,7 @@ fun DownloadsScreen(
                 if (pausedTasks.isNotEmpty()) {
                     item {
                         Text(
-                            "已暂停",
+                            stringResource(R.string.downloads_section_paused),
                             style = MaterialTheme.typography.titleSmall,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -163,12 +165,12 @@ fun DownloadsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "已完成",
+                                stringResource(R.string.downloads_section_completed),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             TextButton(onClick = { viewModel.clearCompleted() }) {
-                                Text("清空已完成", style = MaterialTheme.typography.labelSmall)
+                                Text(stringResource(R.string.downloads_clear_completed), style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -186,7 +188,7 @@ fun DownloadsScreen(
                 if (errorTasks.isNotEmpty()) {
                     item {
                         Text(
-                            "下载失败",
+                            stringResource(R.string.downloads_section_error),
                             style = MaterialTheme.typography.titleSmall,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             color = MaterialTheme.colorScheme.error
@@ -301,7 +303,7 @@ private fun DownloadTaskItem(
                                 )
                                 if (progress.etaSeconds > 0) {
                                     Text(
-                                        text = "剩余 ${formatTime(progress.etaSeconds)}",
+                                        text = stringResource(R.string.downloads_eta_remaining, formatTime(progress.etaSeconds)),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -313,7 +315,7 @@ private fun DownloadTaskItem(
                     }
                     DownloadStatus.PENDING -> {
                         Text(
-                            "等待中",
+                            stringResource(R.string.downloads_status_pending),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -321,21 +323,21 @@ private fun DownloadTaskItem(
                     DownloadStatus.PAUSED -> {
                         val pct = if (task.totalBytes > 0) task.downloadedBytes * 100 / task.totalBytes else 0
                         Text(
-                            "已暂停 - ${pct}%",
+                            stringResource(R.string.downloads_status_paused, pct),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     DownloadStatus.COMPLETED -> {
                         Text(
-                            "下载完成",
+                            stringResource(R.string.downloads_status_completed),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
                     DownloadStatus.ERROR -> {
                         Text(
-                            task.errorMessage ?: "下载失败",
+                            task.errorMessage ?: stringResource(R.string.downloads_section_error),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -349,21 +351,21 @@ private fun DownloadTaskItem(
             when (task.status) {
                 DownloadStatus.DOWNLOADING -> {
                     IconButton(onClick = onPause) {
-                        Icon(Icons.Filled.Pause, contentDescription = "暂停")
+                        Icon(Icons.Filled.Pause, contentDescription = stringResource(R.string.downloads_pause))
                     }
                 }
                 DownloadStatus.PAUSED, DownloadStatus.PENDING, DownloadStatus.ERROR -> {
                     IconButton(onClick = onResume) {
-                        Icon(Icons.Filled.PlayArrow, contentDescription = "继续")
+                        Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.downloads_resume))
                     }
                 }
                 DownloadStatus.COMPLETED -> {
                     Row {
                         IconButton(onClick = onPlay) {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = "播放", tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.downloads_play), tint = MaterialTheme.colorScheme.primary)
                         }
                         IconButton(onClick = onDelete) {
-                            Icon(Icons.Filled.Delete, contentDescription = "删除")
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.downloads_delete))
                         }
                     }
                 }

@@ -1,4 +1,4 @@
-# 保留所有 app 自己的类，不乱混淆
+# Keep all app classes (Reflection-heavy: Gson, Room, Hilt)
 -keep class com.bilimusic.** { *; }
 
 # Retrofit
@@ -26,3 +26,10 @@
 # OkHttp
 -dontwarn okhttp3.**
 -dontwarn okio.**
+
+# EncryptedSharedPreferences / Tink (optional deps not bundled)
+-dontwarn com.google.errorprone.annotations.**
+-dontwarn com.google.api.client.http.**
+-dontwarn com.google.api.client.http.javanet.**
+-dontwarn org.joda.time.**
+-keep class com.google.crypto.tink.** { *; }

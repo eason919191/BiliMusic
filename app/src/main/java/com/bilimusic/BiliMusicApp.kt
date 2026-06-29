@@ -13,23 +13,24 @@ import coil.Coil
 import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
+import com.bilimusic.data.api.BilibiliApiClient
 import dagger.hilt.android.HiltAndroidApp
+import okhttp3.OkHttpClient
 import java.io.File
-import java.io.FileWriter
-import java.io.PrintWriter
 import java.text.SimpleDateFormat
 import java.util.Date
-import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
 @HiltAndroidApp
 class BiliMusicApp : Application() {
 
+    @Inject
+    lateinit var sharedHttpClient: OkHttpClient
+
     companion object {
         const val CHANNEL_ID = "bilimusic_playback"
-        const val CHANNEL_NAME = "音乐播放"
         const val DOWNLOAD_CHANNEL_ID = "bilimusic_downloads"
-        const val DOWNLOAD_CHANNEL_NAME = "下载"
         private const val TAG = "BiliMusicApp"
         var logFile: File? = null
             private set
@@ -43,6 +44,8 @@ class BiliMusicApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Share the DI-provided OkHttpClient across all components
+        BilibiliApiClient.setHttpClient(sharedHttpClient)
         createNotificationChannels()
         setupGlobalCrashHandler()
         setupImageLoader()
@@ -66,26 +69,8 @@ class BiliMusicApp : Application() {
     }
 
     private fun setupImageLoader() {
-        val okHttpClient = OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(20, TimeUnit.SECONDS)
-            .addInterceptor { chain ->
-                val original = chain.request()
-                val newRequest = original.newBuilder()
-                    .addHeader("Referer", "https://www.bilibili.com/")
-                    .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                    .build()
-                Log.d(TAG, "Coil loading: ${original.url}")
-                val response = chain.proceed(newRequest)
-                if (!response.isSuccessful) {
-                    Log.w(TAG, "Coil failed: ${response.code} for ${original.url}")
-                }
-                response
-            }
-            .build()
-
         val imageLoader = ImageLoader.Builder(this)
-            .okHttpClient(okHttpClient)
+            .okHttpClient(sharedHttpClient)
             .memoryCache {
                 MemoryCache.Builder(this)
                     .maxSizePercent(0.25)
@@ -122,15 +107,15 @@ class BiliMusicApp : Application() {
     private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val playbackChannel = NotificationChannel(
-                CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW
+                CHANNEL_ID, getString(R.string.notif_channel_playback_name), NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "音乐播放控制通知"
+                description = getString(R.string.notif_channel_playback_desc)
                 setShowBadge(false)
             }
             val downloadChannel = NotificationChannel(
-                DOWNLOAD_CHANNEL_ID, DOWNLOAD_CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW
+                DOWNLOAD_CHANNEL_ID, getString(R.string.notif_channel_download_name), NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "下载进度通知"
+                description = getString(R.string.notif_channel_download_desc)
                 setShowBadge(false)
             }
             val manager = getSystemService(NotificationManager::class.java)

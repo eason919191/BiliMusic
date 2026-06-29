@@ -20,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -28,11 +29,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.bilimusic.R
 import com.bilimusic.ui.components.BiliAsyncImage
-import coil.compose.rememberAsyncImagePainter
 import com.bilimusic.ui.components.PixelProgressBar
 import com.bilimusic.data.model.PlayMode
-import kotlinx.coroutines.delay
 
 @Composable
 fun PlayerScreen(
@@ -50,10 +50,10 @@ fun PlayerScreen(
         val song = uiState.currentSong!!
         AlertDialog(
             onDismissRequest = { showPlaylistDialog = false },
-            title = { Text("添加到歌单") },
+            title = { Text(stringResource(R.string.player_add_to_playlist)) },
             text = {
                 if (playlistUiState.playlists.isEmpty()) {
-                    Text("还没有歌单，请先去歌单页面创建")
+                    Text(stringResource(R.string.playlist_empty_hint))
                 } else {
                     LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
                         items(playlistUiState.playlists) { playlist ->
@@ -70,7 +70,7 @@ fun PlayerScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showPlaylistDialog = false }) { Text("取消") }
+                TextButton(onClick = { showPlaylistDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -108,7 +108,7 @@ fun PlayerScreen(
                                     type = "text/plain"
                                     putExtra(android.content.Intent.EXTRA_TEXT, text)
                                 },
-                                "分享"
+                                context.getString(R.string.player_share)
                             )
                         )
                     }
@@ -182,20 +182,20 @@ private fun PlayerContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "正在播放",
+                    stringResource(R.string.player_now_playing),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
                 Row {
                     // 分享按钮
                     IconButton(onClick = onShare) {
-                        Icon(Icons.Filled.Share, contentDescription = "分享", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.player_share), tint = MaterialTheme.colorScheme.onSurface)
                     }
                     // 歌词按钮
                     IconButton(onClick = { onToggleLyrics() }) {
                         Icon(
                             if (uiState.showLyrics) Icons.Filled.Article else Icons.Outlined.Article,
-                            contentDescription = "歌词",
+                            contentDescription = stringResource(R.string.player_lyrics),
                             tint = when {
                                 uiState.showLyrics -> MaterialTheme.colorScheme.primary
                                 uiState.lyrics.isNotEmpty() -> MaterialTheme.colorScheme.onSurface
@@ -204,13 +204,13 @@ private fun PlayerContent(
                         )
                     }
                     IconButton(onClick = onAddToPlaylist) {
-                        Icon(Icons.Filled.PlaylistAdd, contentDescription = "添加到歌单", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.Filled.PlaylistAdd, contentDescription = stringResource(R.string.player_add_to_playlist), tint = MaterialTheme.colorScheme.onSurface)
                     }
                     IconButton(onClick = { showPlaylist = !showPlaylist }) {
-                        Icon(Icons.Outlined.QueueMusic, contentDescription = "播放列表", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.Outlined.QueueMusic, contentDescription = stringResource(R.string.player_playlist), tint = MaterialTheme.colorScheme.onSurface)
                     }
                     IconButton(onClick = onMinimize) {
-                        Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "最小化", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = stringResource(R.string.player_minimize), tint = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -223,7 +223,7 @@ private fun PlayerContent(
                         if (uiState.lyrics.isNotEmpty()) {
                             LyricsView(lyrics = uiState.lyrics, currentIndex = uiState.currentLyricIndex, modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp))
                         } else {
-                            Text(if (song.bvid != null) "暂无可用歌词\n（登录B站后可获取AI字幕）" else "当前歌曲无字幕", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                            Text(if (song.bvid != null) stringResource(R.string.player_lyrics_unavailable) else stringResource(R.string.player_lyrics_no_subtitle), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         }
                     } else {
                 Card(
@@ -234,7 +234,7 @@ private fun PlayerContent(
                         if (song.coverUrl != null) {
                             BiliAsyncImage(
                                 model = song.coverUrl,
-                                contentDescription = "专辑封面",
+                                contentDescription = stringResource(R.string.player_cover_art),
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
@@ -271,7 +271,6 @@ private fun PlayerContent(
                 progress = progress,
                 onProgressChange = { onSeek((it * uiState.duration).toLong()) },
                 onProgressChangeFinished = {},
-                style = uiState.progressBarStyle,
                 activeColor = MaterialTheme.colorScheme.primary,
                 inactiveColor = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
@@ -294,13 +293,13 @@ private fun PlayerContent(
                 IconButton(onClick = onCyclePlayMode) {
                     Icon(
                         when (uiState.playMode) { PlayMode.LOOP -> Icons.Outlined.Loop; PlayMode.SHUFFLE -> Icons.Outlined.Shuffle; PlayMode.SINGLE -> Icons.Outlined.RepeatOne },
-                        "播放模式",
+                        stringResource(R.string.player_play_mode),
                         tint = if (uiState.playMode != PlayMode.LOOP) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         modifier = Modifier.size(28.dp)
                     )
                 }
                 IconButton(onClick = onPrevious) {
-                    Icon(Icons.Filled.SkipPrevious, "上一首", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(40.dp))
+                    Icon(Icons.Filled.SkipPrevious, stringResource(R.string.player_previous), tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(40.dp))
                 }
                 Box(
                     modifier = Modifier.size(64.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary).clickable { onPlayPause() },
@@ -308,15 +307,15 @@ private fun PlayerContent(
                 ) {
                     Icon(
                         if (uiState.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        if (uiState.isPlaying) "暂停" else "播放",
+                        if (uiState.isPlaying) stringResource(R.string.player_pause) else stringResource(R.string.player_play),
                         tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(32.dp)
                     )
                 }
                 IconButton(onClick = onNext) {
-                    Icon(Icons.Filled.SkipNext, "下一首", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(40.dp))
+                    Icon(Icons.Filled.SkipNext, stringResource(R.string.player_next), tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(40.dp))
                 }
                 IconButton(onClick = onDownload) {
-                    Icon(Icons.Filled.Download, "下载", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.size(28.dp))
+                    Icon(Icons.Filled.Download, stringResource(R.string.player_download), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.size(28.dp))
                 }
             }
 
@@ -354,12 +353,12 @@ private fun PlayerContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            "当前播放 (${uiState.playlist.size})",
+                            stringResource(R.string.player_current_queue, uiState.playlist.size),
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         IconButton(onClick = { showPlaylist = false }) {
-                            Icon(Icons.Filled.Close, contentDescription = "关闭")
+                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.player_close))
                         }
                     }
 
@@ -408,7 +407,7 @@ private fun PlayerContent(
                                     IconButton(onClick = { onRemoveFromPlaylist(index) }) {
                                         Icon(
                                             Icons.Outlined.Close,
-                                            contentDescription = "移除",
+                                            contentDescription = stringResource(R.string.player_remove),
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }

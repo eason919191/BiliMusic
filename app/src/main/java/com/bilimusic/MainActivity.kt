@@ -17,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -133,10 +134,10 @@ fun MainScreen() {
                                     Icon(
                                         imageVector = if (selectedTab == index)
                                             screen.selectedIcon else screen.unselectedIcon,
-                                        contentDescription = screen.title
+                                        contentDescription = stringResource(screen.titleRes)
                                     )
                                 },
-                                label = { Text(screen.title) },
+                                label = { Text(stringResource(screen.titleRes)) },
                                 selected = selectedTab == index,
                                 onClick = { selectedTab = index }
                             )

@@ -82,13 +82,26 @@ fun BiliMusicTheme(
 
     val actualColorScheme = when {
         useDynamicColor && seedColor != 0xFF6750A4.toInt() -> {
-            // Generate a scheme from the seed color using static builder
+            // 自定义种子色 → 手动生成协调的色板（primary/secondary/tertiary 都从种子衍生）
             val seed = Color(seedColor)
-            if (actualDarkTheme) darkColorScheme(primary = seed)
-            else lightColorScheme(primary = seed)
+            val r = seed.red; val g = seed.green; val b = seed.blue
+            // 计算亮度判断文字颜色（相对亮度公式）
+            val luminance = 0.299f * r + 0.587f * g + 0.114f * b
+            if (actualDarkTheme) darkColorScheme(
+                primary = seed,
+                secondary = Color(r * 0.8f, g * 0.7f, b * 0.85f),
+                tertiary = Color(b * 0.9f, g * 0.6f, r * 0.7f),
+                onPrimary = if (luminance > 0.5f) Color(0xFF1C1B1F) else Color.White
+            ) else lightColorScheme(
+                primary = seed,
+                onPrimary = if (luminance > 0.5f) Color(0xFF1C1B1F) else Color.White,
+                primaryContainer = seed.copy(alpha = 0.12f),
+                secondary = Color(r * 0.7f, g * 0.6f, b * 0.75f),
+                tertiary = Color(b * 0.8f, g * 0.5f, r * 0.6f)
+            )
         }
         useDynamicColor -> {
-            // System dynamic color based on wallpaper
+            // System dynamic color based on wallpaper (Android 12+)
             if (actualDarkTheme) dynamicDarkColorScheme(context)
             else dynamicLightColorScheme(context)
         }

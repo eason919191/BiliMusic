@@ -299,21 +299,19 @@ object BilibiliApiClient {
 
     private val gson: Gson = GsonBuilder().setLenient().create()
 
-    private val okHttpClient: OkHttpClient by lazy {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.HEADERS
-        }
+    @Volatile
+    private var _okHttpClient: OkHttpClient? = null
+
+    private val defaultClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
-            .addInterceptor(logging)
             .connectTimeout(20, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
             .followRedirects(true)
             .followSslRedirects(true)
             .retryOnConnectionFailure(true)
             .addInterceptor { chain ->
                 val builder = chain.request().newBuilder()
-                    .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                    .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
                     .addHeader("Referer", "https://www.bilibili.com/")
                     .addHeader("Origin", "https://www.bilibili.com")
                 if (userCookie.isNotBlank()) builder.addHeader("Cookie", userCookie)
@@ -322,10 +320,18 @@ object BilibiliApiClient {
             .build()
     }
 
+    /** Returns the DI-provided client if available, otherwise the default one. */
+    fun okHttpClient(): OkHttpClient = _okHttpClient ?: defaultClient
+
+    /** Set from AppModule/DI to reuse the shared OkHttpClient. */
+    fun setHttpClient(client: OkHttpClient) {
+        _okHttpClient = client
+    }
+
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
-            .client(okHttpClient)
+            .client(okHttpClient())
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
@@ -333,8 +339,6 @@ object BilibiliApiClient {
     val service: BilibiliApiService by lazy {
         retrofit.create(BilibiliApiService::class.java)
     }
-
-    fun sharedClient(): OkHttpClient = okHttpClient
 
     /**
      * 搜索视频 - 使用WBI签名
@@ -367,7 +371,7 @@ object BilibiliApiClient {
                     .addHeader("Origin", "https://search.bilibili.com")
                     .build()
 
-                val response = okHttpClient.newCall(request).execute()
+                val response = okHttpClient().newCall(request).execute()
                 val body = response.body?.string() ?: ""
                 Log.d(TAG, "Search response code: ${response.code}")
 
@@ -424,7 +428,7 @@ object BilibiliApiClient {
     suspend fun fetchSearchSuggestions(keyword: String): List<String> {
         return withContext(Dispatchers.IO) {
             try {
-                val resp = okHttpClient.newCall(Request.Builder()
+                val resp = okHttpClient().newCall(Request.Builder()
                     .url("https://s.search.bilibili.com/main/suggest?term=${java.net.URLEncoder.encode(keyword, "UTF-8")}")
                     .addHeader("User-Agent", "Mozilla/5.0")
                     .addHeader("Referer", "https://www.bilibili.com/")
@@ -468,7 +472,7 @@ object BilibiliApiClient {
                     append("https://api.bilibili.com/x/player/wbi/v2?")
                     signed.forEach { (k, v) -> append("${java.net.URLEncoder.encode(k,"UTF-8")}=${java.net.URLEncoder.encode(v,"UTF-8")}&") }
                 }.trimEnd('&')
-                val resp = okHttpClient.newCall(okhttp3.Request.Builder().url(url).build()).execute()
+                val resp = okHttpClient().newCall(okhttp3.Request.Builder().url(url).build()).execute()
                 val body = resp.body?.string() ?: ""
                 val json = JSONObject(body)
                 if (json.optInt("code") == 0) {
@@ -524,7 +528,7 @@ object BilibiliApiClient {
                     .addHeader("Referer", "https://www.bilibili.com/")
                     .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
                     .build()
-                val dlResp = okHttpClient.newCall(dlReq).execute()
+                val dlResp = okHttpClient().newCall(dlReq).execute()
                 if (!dlResp.isSuccessful) {
                     Log.e(TAG, "Download HTTP ${dlResp.code} for $streamUrl")
                     return@withContext streamUrl // 返回原始URL，让ExoPlayer尝试
@@ -571,7 +575,7 @@ object BilibiliApiClient {
                 .addHeader("Referer", "https://www.bilibili.com/video/$bvid")
                 .addHeader("User-Agent", "Mozilla/5.0")
                 .build()
-            val resp1 = okHttpClient.newCall(req1).execute()
+            val resp1 = okHttpClient().newCall(req1).execute()
             val body1 = resp1.body?.string() ?: ""
             if (!resp1.isSuccessful) return@runCatching null
 
@@ -590,7 +594,7 @@ object BilibiliApiClient {
                 .addHeader("Referer", "https://www.bilibili.com/")
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
                 .build()
-            val dlResp2 = okHttpClient.newCall(dlReq2).execute()
+            val dlResp2 = okHttpClient().newCall(dlReq2).execute()
             if (!dlResp2.isSuccessful) return@runCatching null
 
             val body2 = dlResp2.body ?: return@runCatching null
@@ -647,7 +651,7 @@ object BilibiliApiClient {
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
                 .addHeader("Referer", "https://www.bilibili.com/video/$bvid")
                 .build()
-            val resp = okHttpClient.newCall(req).execute()
+            val resp = okHttpClient().newCall(req).execute()
             val body = resp.body?.string() ?: ""
             if (!resp.isSuccessful) return@runCatching null
 
@@ -701,7 +705,7 @@ object BilibiliApiClient {
                 .addHeader("Referer", "https://www.bilibili.com/video/$bvid")
                 .build()
 
-            val response = okHttpClient.newCall(request).execute()
+            val response = okHttpClient().newCall(request).execute()
             val body = response.body?.string() ?: ""
             if (!response.isSuccessful) return@runCatching null
 
@@ -732,7 +736,7 @@ object BilibiliApiClient {
                     .addHeader("Referer", "https://www.bilibili.com/")
                     .build()
                 Log.d(TAG, "Fetching fav folders...")
-                val response = okHttpClient.newCall(request).execute()
+                val response = okHttpClient().newCall(request).execute()
                 val body = response.body?.string() ?: ""
 
                 if (!response.isSuccessful) {
@@ -850,7 +854,7 @@ object BilibiliApiClient {
                 }.trimEnd('&')
                 val reqBuilder = Request.Builder().url(url).get()
                 if (userCookie.isNotBlank()) reqBuilder.addHeader("Cookie", userCookie)
-                val response = okHttpClient.newCall(reqBuilder.build()).execute()
+                val response = okHttpClient().newCall(reqBuilder.build()).execute()
                 val body = response.body?.string() ?: return@withContext emptyList()
                 val subtitleResp = gson.fromJson(body, BilibiliSubtitleResponse::class.java)
                 if (subtitleResp.code == 0) {
@@ -877,7 +881,7 @@ object BilibiliApiClient {
                 val fullUrl = if (subtitleUrl.startsWith("//")) "https:$subtitleUrl" else subtitleUrl
                 val reqBuilder = Request.Builder().url(fullUrl).get()
                 if (userCookie.isNotBlank()) reqBuilder.addHeader("Cookie", userCookie)
-                val response = okHttpClient.newCall(reqBuilder.build()).execute()
+                val response = okHttpClient().newCall(reqBuilder.build()).execute()
                 val body = response.body?.string() ?: return@withContext emptyList()
                 // AI字幕返回 {"body": [...]}，普通字幕返回 [...]
                 val jsonArray = try {

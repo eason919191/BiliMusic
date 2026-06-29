@@ -15,7 +15,6 @@ import okhttp3.Request
 import android.util.Log
 import java.io.File
 import java.io.FileOutputStream
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 data class DownloadsUiState(
@@ -38,6 +37,7 @@ class DownloadsViewModel @Inject constructor(
     private val repository: MusicRepository,
     private val musicPlayer: com.bilimusic.player.MusicPlayer,
     private val preferences: com.bilimusic.data.preferences.AppPreferences,
+    private val client: OkHttpClient,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -48,18 +48,6 @@ class DownloadsViewModel @Inject constructor(
     val downloadProgress: StateFlow<Map<String, DownloadProgress>> = _downloadProgress.asStateFlow()
 
     private var downloadPath: String = ""
-
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(120, TimeUnit.SECONDS)
-        .addInterceptor { chain ->
-            val request = chain.request().newBuilder()
-                .addHeader("Referer", "https://www.bilibili.com/")
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .build()
-            chain.proceed(request)
-        }
-        .build()
 
     private val activeDownloads = mutableMapOf<String, Job>()
     private val downloadScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -179,7 +167,7 @@ class DownloadsViewModel @Inject constructor(
                 val inputStream = body.byteStream()
                 val outputStream = FileOutputStream(file)
 
-                val buffer = ByteArray(8192)
+                val buffer = ByteArray(65536) // 64KB 缓冲区，减少系统调用
                 var downloaded = 0L
                 var lastUpdateTime = System.currentTimeMillis()
                 var lastDownloaded = 0L
@@ -240,7 +228,7 @@ class DownloadsViewModel @Inject constructor(
 
                 response.close()
 
-                if (downloaded >= totalBytes * 0.95) {
+                if (downloaded >= totalBytes) {
                     // Download complete
                     // Scan to MediaStore so the file appears in file manager
                     try {
