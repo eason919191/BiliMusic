@@ -584,7 +584,8 @@ private fun PlaylistDetailScreen(
                     Column(Modifier.weight(1f)) {
                         Text(playlistName, style = MaterialTheme.typography.titleLarge, color = androidx.compose.ui.graphics.Color.White)
                         val totalMin = songs.sumOf { it.duration } / 60000
-                        Text("${songs.size}首·${totalMin}分钟", style = MaterialTheme.typography.bodyMedium, color = androidx.compose.ui.graphics.Color.White.copy(0.8f))
+                        val totalDisplay = if (totalMin > 0) "${songs.size}首·${totalMin}分钟" else "${songs.size}首"
+                        Text(totalDisplay, style = MaterialTheme.typography.bodyMedium, color = androidx.compose.ui.graphics.Color.White.copy(0.8f))
                     }
                 }
                 Row(Modifier.fillMaxWidth().padding(4.dp).statusBarsPadding(), horizontalArrangement = Arrangement.SpaceBetween) {

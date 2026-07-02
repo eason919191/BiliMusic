@@ -257,7 +257,7 @@ fun SearchScreen(
                                 onDismiss = { showImportDialog = null },
                                 onConfirm = {
                                     showImportDialog = null
-                                    viewModel.importNeteasePlaylist(pl.id)
+                                    viewModel.importNeteasePlaylist(pl.id, pl.name)
                                 }
                             )
                         }

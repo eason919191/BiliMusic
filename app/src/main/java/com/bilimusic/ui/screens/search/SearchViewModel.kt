@@ -166,12 +166,23 @@ class SearchViewModel @Inject constructor(
         _uiState.update { it.copy(neteaseSearchType = type) }
     }
 
-    fun importNeteasePlaylist(playlistId: Long) {
+    fun importNeteasePlaylist(playlistId: Long, playlistName: String = "") {
         viewModelScope.launch {
             try {
                 _uiState.update { it.copy(isSearching = true) }
                 val resp = withContext(Dispatchers.IO) { NeteaseApiClient.getPlaylistDetail(playlistId) }
                 val songs = withContext(Dispatchers.IO) { NeteaseSongParser.parsePlaylistSongs(resp) }
+                val localPlaylistId = "netease_$playlistId"
+                // Ensure local playlist record exists
+                var localPlaylist = repository.getPlaylistById(localPlaylistId)
+                if (localPlaylist == null) {
+                    repository.insertPlaylist(
+                        com.bilimusic.data.model.Playlist(
+                            id = localPlaylistId,
+                            name = playlistName.ifBlank { "网易云歌单 #$playlistId" }
+                        )
+                    )
+                }
                 var added = 0
                 for (song in songs) {
                     try {
@@ -183,20 +194,12 @@ class SearchViewModel @Inject constructor(
                                 title = song.name,
                                 artist = song.artistName,
                                 coverUrl = song.coverUrl,
-                                duration = song.duration / 1000L,
+                                duration = song.duration,
                                 url = url,
                                 source = "NETEASE",
                                 neteaseId = song.id
                             )
-                            repository.addDownloadTask(DownloadTask(
-                                id = "netease_${song.id}",
-                                musicId = "netease_${song.id}",
-                                title = song.name,
-                                artist = song.artistName,
-                                coverUrl = song.coverUrl,
-                                url = url,
-                                status = DownloadStatus.PENDING
-                            ))
+                            repository.addSongToPlaylist(localPlaylistId, music)
                             added++
                         }
                     } catch (_: Exception) {}

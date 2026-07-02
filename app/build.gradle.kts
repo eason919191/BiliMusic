@@ -6,15 +6,15 @@ plugins {
 }
 
 android {
-    namespace = "com.bili.music"
-    compileSdk = 34
+    namespace = "com.bilimusic"
+    compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.bili.music"
+        applicationId = "com.bilimusic"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        targetSdk = 35
+        versionCode = 3
+        versionName = "2.0.1"
         multiDexEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -22,9 +22,9 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storeFile = file("../release.jks")
             storePassword = "android"
-            keyAlias = "androiddebugkey"
+            keyAlias = "release"
             keyPassword = "android"
         }
     }
@@ -37,7 +37,6 @@ android {
         }
         debug {
             isMinifyEnabled = false
-            applicationIdSuffix = ".debug"
         }
     }
 
@@ -52,7 +51,10 @@ android {
             "-opt-in=kotlin.RequiresOptIn",
             "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi",
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-            "-opt-in=androidx.compose.animation.ExperimentalAnimationApi"
+            "-opt-in=androidx.compose.animation.ExperimentalAnimationApi",
+            "-opt-in=androidx.media3.common.util.UnstableApi",
+            "-P",
+            "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=true"
         )
     }
 
@@ -61,7 +63,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.10"
+        kotlinCompilerExtensionVersion = "1.5.15"
     }
 
     packaging {
@@ -78,7 +80,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.8.2")
 
     // Compose BOM
-    implementation(platform("androidx.compose:compose-bom:2024.02.00"))
+    implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -109,10 +111,12 @@ dependencies {
 
     // Media compat - MediaStyle通知
     implementation("androidx.media:media:1.7.0")
-    // No ExoPlayer - using android.media.MediaPlayer with MediaSessionCompat
-
-    // Security - EncryptedSharedPreferences for cookie storage
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    // ExoPlayer - Media playback
+    implementation("androidx.media3:media3-exoplayer:1.2.1")
+    implementation("androidx.media3:media3-exoplayer-hls:1.2.1")
+    implementation("androidx.media3:media3-session:1.2.1")
+    implementation("androidx.media3:media3-ui:1.2.1")
+    implementation("androidx.media3:media3-datasource-okhttp:1.2.1")
 
     // Coil - Image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
@@ -120,6 +124,7 @@ dependencies {
 
     // DataStore - Preferences
     implementation("androidx.datastore:datastore-preferences:1.0.0")
+
 
     // Accompanist - System UI controller
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.34.0")
@@ -129,6 +134,9 @@ dependencies {
 
     // Gson
     implementation("com.google.code.gson:gson:2.10.1")
+
+    // Haze - Behind-content blur (frosted glass)
+    implementation("dev.chrisbanes.haze:haze:0.5.4")
 
     // ZXing - QR code generation
     implementation("com.google.zxing:core:3.5.3")

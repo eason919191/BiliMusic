@@ -110,6 +110,18 @@ fun SettingsScreen(
             )
         }
 
+        if (!uiState.playerBgPureColor) {
+            item {
+                SettingsSliderItem(
+                    icon = Icons.Outlined.Opacity,
+                    title = "迷你播放器透明度",
+                    subtitle = "${(uiState.miniPlayerAlpha * 100).toInt()}%",
+                    value = uiState.miniPlayerAlpha,
+                    onValueChange = { viewModel.setMiniPlayerAlpha(it) }
+                )
+            }
+        }
+
         // ===== 歌词设置 =====
         item {
             SettingsGroupHeader("歌词设置")
@@ -121,8 +133,18 @@ fun SettingsScreen(
                 title = "歌词模糊程度",
                 subtitle = "${uiState.lyricBlurAmount.toInt()}",
                 value = uiState.lyricBlurAmount,
-                valueRange = 0f..12f,
+                valueRange = 0f..30f,
                 onValueChange = { viewModel.setLyricBlurAmount(it) }
+            )
+        }
+
+        item {
+            SettingsSliderItem(
+                icon = Icons.Outlined.Opacity,
+                title = "迷你播放器透明度",
+                subtitle = "${(uiState.miniPlayerAlpha * 100).toInt()}%",
+                value = uiState.miniPlayerAlpha,
+                onValueChange = { viewModel.setMiniPlayerAlpha(it) }
             )
         }
 
@@ -132,7 +154,7 @@ fun SettingsScreen(
                 title = "歌词字体大小",
                 subtitle = "${uiState.lyricFontSize.toInt()}sp",
                 value = uiState.lyricFontSize,
-                valueRange = 14f..24f,
+                valueRange = 12f..40f,
                 onValueChange = { viewModel.setLyricFontSize(it) }
             )
         }

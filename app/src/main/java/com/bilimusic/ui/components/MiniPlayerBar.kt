@@ -78,7 +78,7 @@ fun MiniPlayerBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .then(fogMod)
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.10f))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = alpha))
             ) {
                 Box(
                     modifier = Modifier
