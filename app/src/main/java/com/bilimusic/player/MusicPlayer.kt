@@ -16,6 +16,7 @@ import androidx.core.app.NotificationCompat
 import com.bilimusic.MainActivity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.bilimusic.data.model.*
+import com.bilimusic.data.repository.MusicRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.net.HttpURLConnection
@@ -24,7 +25,8 @@ import javax.inject.Singleton
 
 @Singleton
 class MusicPlayer @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val repository: MusicRepository
 ) {
     private var mediaPlayer: MediaPlayer? = null
 
@@ -206,6 +208,21 @@ class MusicPlayer @Inject constructor(
             setOnPreparedListener { player ->
                 _duration.value = player.duration.toLong().coerceAtLeast(0)
                 player.start(); _isPlaying.value = true
+                // 记录最近播放
+                _currentSong.value?.let { s ->
+                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        try {
+                            repository.addRecentPlay(RecentPlay(
+                                id = s.id,
+                                title = s.title,
+                                artist = s.artist,
+                                coverUrl = s.coverUrl,
+                                duration = s.duration,
+                                source = s.source
+                            ))
+                        } catch (_: Exception) {}
+                    }
+                }
             }
             setOnSeekCompleteListener { player ->
                 _currentPosition.value = player.currentPosition.toLong()

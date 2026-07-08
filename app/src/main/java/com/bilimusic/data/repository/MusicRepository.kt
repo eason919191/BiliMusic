@@ -72,10 +72,13 @@ class MusicRepository @Inject constructor(
 
     suspend fun addSongToPlaylist(playlistId: String, song: Music) {
         musicDao.insertMusic(song)
-        val count = musicDao.getSongsInPlaylistOnce(playlistId).size
-        musicDao.addSongToPlaylist(
-            PlaylistSong(playlistId = playlistId, songId = song.id, order = count)
-        )
+        val existing = musicDao.getSongsInPlaylistOnce(playlistId)
+        // 删除旧的关联，新歌放到最前面
+        musicDao.deleteAllPlaylistSongs(playlistId)
+        musicDao.addSongToPlaylist(PlaylistSong(playlistId = playlistId, songId = song.id, order = 0))
+        existing.forEachIndexed { idx, m ->
+            musicDao.addSongToPlaylist(PlaylistSong(playlistId = playlistId, songId = m.id, order = idx + 1))
+        }
         // 单曲调用：计数顺带更新（只有一首歌，影响不大）
         musicDao.updatePlaylistSongCount(playlistId)
         val playlist = musicDao.getPlaylistById(playlistId)
@@ -87,10 +90,11 @@ class MusicRepository @Inject constructor(
     /** 只添加关联不更新计数，供批量方法内部使用 */
     private suspend fun addSongToPlaylistNoCount(playlistId: String, song: Music) {
         musicDao.insertMusic(song)
-        val count = musicDao.getSongsInPlaylistOnce(playlistId).size
-        musicDao.addSongToPlaylist(
-            PlaylistSong(playlistId = playlistId, songId = song.id, order = count)
-        )
+        val existing = musicDao.getSongsInPlaylistOnce(playlistId)
+        existing.forEachIndexed { idx, m ->
+            musicDao.addSongToPlaylist(PlaylistSong(playlistId = playlistId, songId = m.id, order = idx + 1))
+        }
+        musicDao.addSongToPlaylist(PlaylistSong(playlistId = playlistId, songId = song.id, order = 0))
     }
 
     /** 批量添加歌曲到歌单 */
@@ -207,6 +211,16 @@ class MusicRepository @Inject constructor(
     }
 
     fun getActiveDownloadCount(): Flow<Int> = musicDao.getActiveDownloadCount()
+
+    // ===== Recent Play =====
+    fun getRecentPlays(limit: Int = 100): Flow<List<RecentPlay>> = musicDao.getRecentPlays(limit)
+
+    suspend fun addRecentPlay(play: RecentPlay) {
+        musicDao.addRecentPlay(play)
+        musicDao.trimRecentPlays()
+    }
+
+    suspend fun clearRecentPlays() = musicDao.clearRecentPlays()
 
     // ===== Favorite Folders (Bilibili) =====
     suspend fun getFavoriteFolders(cookie: String, upMid: Long = 0): List<BilibiliFavoriteFolder> {

@@ -28,6 +28,11 @@ data class PlaylistUiState(
     // Copy/Move target
     val showTargetPlaylistDialog: Boolean = false,
     var isCopyMode: Boolean = true,
+    // Tab
+    val selectedTab: Int = 0,
+    // 最近播放
+    val recentSongs: List<Music> = emptyList(),
+    val isShowingRecent: Boolean = false,
     // 同步 B站收藏夹
     val isSyncing: Boolean = false,
     val showSyncDialog: Boolean = false
@@ -51,6 +56,32 @@ class PlaylistViewModel @Inject constructor(
                 }
             } catch (_: Exception) {}
         }
+        viewModelScope.launch {
+            try {
+                repository.getRecentPlays().collect { recent ->
+                    _uiState.update { it.copy(recentSongs = recent.map { play ->
+                        Music(id = play.id, title = play.title, artist = play.artist,
+                            coverUrl = play.coverUrl, duration = play.duration, source = play.source)
+                    }) }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun setPlaylistTab(tab: Int) {
+        _uiState.update { it.copy(selectedTab = tab) }
+    }
+
+    fun showRecentPlaylist() {
+        _uiState.update { it.copy(isShowingRecent = true) }
+    }
+
+    fun hideRecentPlaylist() {
+        _uiState.update { it.copy(isShowingRecent = false) }
+    }
+
+    fun clearRecentPlaylist() {
+        viewModelScope.launch { repository.clearRecentPlays() }
     }
 
     fun showPlaylistDetail(playlistId: String) {

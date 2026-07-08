@@ -12,9 +12,10 @@ import com.bilimusic.data.model.*
         Playlist::class,
         PlaylistSong::class,
         SearchHistory::class,
-        DownloadTask::class
+        DownloadTask::class,
+        RecentPlay::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

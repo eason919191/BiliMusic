@@ -753,7 +753,10 @@ private fun NeteaseLoginDialog(
                                         if (code == 200) {
                                             val cookies = com.bilimusic.data.api.netease.NeteaseApiClient.getCookies()
                                             onLoginSuccess(org.json.JSONObject(cookies as Map<*, *>).toString())
-                                        } else android.widget.Toast.makeText(context, org.json.JSONObject(resp).optString("message", "登录失败"), android.widget.Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            val msg = org.json.JSONObject(resp).optString("message", "")
+                                            android.widget.Toast.makeText(context, if (msg.contains("确认")) "需要安全验证，请使用验证码或网页登录" else msg.ifBlank { "登录失败($code)" }, android.widget.Toast.LENGTH_LONG).show()
+                                        }
                                     } catch (e: Exception) { android.widget.Toast.makeText(context, e.message, android.widget.Toast.LENGTH_SHORT).show() }
                                     isLoggingIn = false
                                 }

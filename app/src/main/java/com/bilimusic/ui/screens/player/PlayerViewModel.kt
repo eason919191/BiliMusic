@@ -259,44 +259,52 @@ class PlayerViewModel @Inject constructor(
         val hasZh = zhLyrics.isNotEmpty()
         val hasEn = enLyrics.isNotEmpty()
 
+        // Netease: check if original + translation available
+        val neteaseOrig = allLyricsMap["netease"].orEmpty()
+        val neteaseTrans = allLyricsMap["netease_en"].orEmpty()
+        val hasNeteaseTrans = neteaseTrans.isNotEmpty()
+
         val nextMode = (state.lyricsMode + 1) % 3
 
         when (nextMode) {
-            0 -> { // 中文
+            0 -> {
+                val targetLyrics = if (zhLyrics.isNotEmpty()) zhLyrics else neteaseOrig
                 _uiState.update { it.copy(
                     lyricsMode = 0,
                     selectedLyricsLanguage = zhLang?.first ?: languages.first().first,
-                    lyrics = zhLyrics.ifEmpty { enLyrics },
+                    lyrics = targetLyrics,
                     translatedLyrics = emptyList(),
                     showCombinedLyrics = false,
-                    currentLyricIndex = if (zhLyrics.isNotEmpty()) {
-                        zhLyrics.indexOfLast { l -> l.timeMs <= state.currentPosition }
+                    currentLyricIndex = if (targetLyrics.isNotEmpty()) {
+                        targetLyrics.indexOfLast { l -> l.timeMs <= state.currentPosition }
                     } else -1
                 ) }
             }
-            1 -> { // English
+            1 -> {
+                val targetLyrics = if (enLyrics.isNotEmpty()) enLyrics else neteaseTrans.ifEmpty { zhLyrics.ifEmpty { neteaseOrig } }
+                val targetLang = if (enLang != null) enLang.first else if (hasNeteaseTrans) "netease_en" else languages.first().first
                 _uiState.update { it.copy(
                     lyricsMode = 1,
-                    selectedLyricsLanguage = enLang?.first ?: languages.first().first,
-                    lyrics = enLyrics.ifEmpty { zhLyrics },
+                    selectedLyricsLanguage = targetLang,
+                    lyrics = targetLyrics,
                     translatedLyrics = emptyList(),
                     showCombinedLyrics = false,
-                    currentLyricIndex = if (enLyrics.isNotEmpty()) {
-                        enLyrics.indexOfLast { l -> l.timeMs <= state.currentPosition }
+                    currentLyricIndex = if (targetLyrics.isNotEmpty()) {
+                        targetLyrics.indexOfLast { l -> l.timeMs <= state.currentPosition }
                     } else -1
                 ) }
             }
-            2 -> { // 中EN组合（中文在上，英文在下）
-                val combinedZhLyrics = zhLyrics.ifEmpty { enLyrics }
-                val combinedEnLyrics = if (zhLyrics.isNotEmpty() && enLyrics.isNotEmpty()) enLyrics else emptyList()
+            2 -> {
+                val primaryLyrics = (zhLyrics.ifEmpty { neteaseOrig }).ifEmpty { enLyrics.ifEmpty { neteaseOrig } }
+                val secondaryLyrics = if (hasZh && hasEn) enLyrics else if (hasNeteaseTrans) neteaseTrans else emptyList()
                 _uiState.update { it.copy(
                     lyricsMode = 2,
                     selectedLyricsLanguage = zhLang?.first ?: languages.first().first,
-                    lyrics = combinedZhLyrics,
-                    translatedLyrics = combinedEnLyrics,
+                    lyrics = primaryLyrics,
+                    translatedLyrics = secondaryLyrics,
                     showCombinedLyrics = true,
-                    currentLyricIndex = if (combinedZhLyrics.isNotEmpty()) {
-                        combinedZhLyrics.indexOfLast { l -> l.timeMs <= state.currentPosition }
+                    currentLyricIndex = if (primaryLyrics.isNotEmpty()) {
+                        primaryLyrics.indexOfLast { l -> l.timeMs <= state.currentPosition }
                     } else -1
                 ) }
             }
@@ -411,12 +419,22 @@ class PlayerViewModel @Inject constructor(
 
                 allLyricsMap.clear()
                 allLyricsMap["netease"] = lines
+                if (transLines.isNotEmpty()) {
+                    allLyricsMap["netease_en"] = transLines
+                }
 
+                val hasTrans = transLines.isNotEmpty()
                 _uiState.update { it.copy(
                     lyrics = lines,
-                    lyricsLanguages = listOf("netease" to "歌词"),
+                    lyricsLanguages = if (hasTrans) {
+                        listOf("netease" to "原文", "netease_en" to "译文")
+                    } else {
+                        listOf("netease" to "歌词")
+                    },
                     selectedLyricsLanguage = "netease",
-                    translatedLyrics = transLines
+                    translatedLyrics = if (hasTrans) transLines else emptyList(),
+                    lyricsMode = 0,
+                    showCombinedLyrics = false
                 ) }
             } catch (e: Exception) {
                 android.util.Log.e("PlayerVM", "loadNeteaseLyrics failed", e)

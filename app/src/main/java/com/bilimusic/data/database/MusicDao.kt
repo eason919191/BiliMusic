@@ -82,6 +82,9 @@ interface MusicDao {
     @Query("SELECT COUNT(*) FROM playlist_song WHERE playlistId = :playlistId AND songId = :songId")
     suspend fun isSongInPlaylist(playlistId: String, songId: String): Int
 
+    @Query("DELETE FROM playlist_song WHERE playlistId = :playlistId")
+    suspend fun deleteAllPlaylistSongs(playlistId: String)
+
     // ===== Search History =====
     @Query("SELECT * FROM search_history ORDER BY searchedAt DESC LIMIT 20")
     fun getSearchHistory(): Flow<List<SearchHistory>>
@@ -131,6 +134,19 @@ interface MusicDao {
 
     @Query("SELECT COUNT(*) FROM download_task WHERE status = 'DOWNLOADING' OR status = 'PENDING'")
     fun getActiveDownloadCount(): Flow<Int>
+
+    // ===== Recent Play =====
+    @Query("SELECT * FROM recent_play ORDER BY playedAt DESC LIMIT :limit")
+    fun getRecentPlays(limit: Int = 100): Flow<List<RecentPlay>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun addRecentPlay(play: RecentPlay)
+
+    @Query("DELETE FROM recent_play WHERE playedAt NOT IN (SELECT playedAt FROM recent_play ORDER BY playedAt DESC LIMIT :limit)")
+    suspend fun trimRecentPlays(limit: Int = 100)
+
+    @Query("DELETE FROM recent_play")
+    suspend fun clearRecentPlays()
 
     // ===== Local Music =====
     @Query("SELECT * FROM music WHERE isLocal = 1 ORDER BY addedAt DESC")

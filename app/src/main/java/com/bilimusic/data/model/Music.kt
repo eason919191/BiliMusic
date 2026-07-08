@@ -143,6 +143,21 @@ enum class PlayMode {
 }
 
 /**
+ * 最近播放记录
+ */
+@Entity(tableName = "recent_play")
+data class RecentPlay(
+    @PrimaryKey
+    val id: String,
+    val title: String,
+    val artist: String = "",
+    val coverUrl: String? = null,
+    val duration: Long = 0L,
+    val source: String = "BILIBILI",
+    val playedAt: Long = System.currentTimeMillis()
+)
+
+/**
  * 主题色模式
  */
 enum class ThemeMode {

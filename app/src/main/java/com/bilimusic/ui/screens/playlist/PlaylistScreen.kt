@@ -119,7 +119,11 @@ fun PlaylistScreen(
                     }
                     PlaylistListScreen(
                         playlists = uiState.playlists,
+                        selectedTab = uiState.selectedTab,
+                        onTabSelected = { viewModel.setPlaylistTab(it) },
+                        recentSongs = uiState.recentSongs,
                         onCreatePlaylist = { viewModel.showCreatePlaylist() },
+                        onPlayRecentPlaylist = { viewModel.showRecentPlaylist() },
                         onPlaylistClick = { viewModel.showPlaylistDetail(it.id) },
                         onDeletePlaylist = { viewModel.deletePlaylist(it) },
                         getCoverModifier = getCoverModifier
@@ -230,13 +234,29 @@ fun PlaylistScreen(
 @Composable
 private fun PlaylistListScreen(
     playlists: List<Playlist>,
+    selectedTab: Int = 0,
+    onTabSelected: (Int) -> Unit = {},
+    recentSongs: List<Music> = emptyList(),
     onCreatePlaylist: () -> Unit,
+    onPlayRecentPlaylist: () -> Unit = {},
     onPlaylistClick: (Playlist) -> Unit,
     onDeletePlaylist: (String) -> Unit,
     onPlaylistCardCover: ((androidx.compose.ui.geometry.Rect) -> Unit)? = null,
     getCoverModifier: (@Composable (Playlist) -> Modifier)? = null
 ) {
     var isGridView by remember { mutableStateOf(true) }
+    val tabs = listOf("全部", "网易云", "B站", "本地")
+
+    // 按来源过滤
+    val filteredPlaylists = remember(playlists, selectedTab) {
+        when (selectedTab) {
+            1 -> playlists.filter { it.neteasePlaylistId != null }
+            2 -> playlists.filter { it.favoriteFolderId != null }
+            3 -> playlists.filter { it.neteasePlaylistId == null && it.favoriteFolderId == null }
+            else -> playlists
+        }
+    }
+    val hasData = filteredPlaylists.isNotEmpty() || (selectedTab == 0 && recentSongs.isNotEmpty())
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Header
@@ -264,7 +284,14 @@ private fun PlaylistListScreen(
             }
         }
 
-        if (playlists.isEmpty()) {
+        // Tabs
+        TabRow(selectedTabIndex = selectedTab) {
+            tabs.forEachIndexed { index, title ->
+                Tab(selected = selectedTab == index, onClick = { onTabSelected(index) }, text = { Text(title) })
+            }
+        }
+
+        if (!hasData) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -278,12 +305,12 @@ private fun PlaylistListScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        "还没有歌单",
+                        if (selectedTab == 0) "还没有歌单" else "暂无此类型歌单",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                     Text(
-                        "点击右上角按钮创建",
+                        if (selectedTab == 0) "点击右上角按钮创建" else "请先登录对应平台导入",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     )
@@ -297,7 +324,12 @@ private fun PlaylistListScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(playlists, key = { it.id }) { playlist ->
+                if (selectedTab == 0 && recentSongs.isNotEmpty()) {
+                    item {
+                        RecentPlayCard(onClick = onPlayRecentPlaylist, count = recentSongs.size)
+                    }
+                }
+                items(filteredPlaylists, key = { it.id }) { playlist ->
                     PlaylistCard(
                         playlist = playlist,
                         onClick = { onPlaylistClick(playlist) },
@@ -313,7 +345,12 @@ private fun PlaylistListScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(playlists, key = { it.id }) { playlist ->
+                if (selectedTab == 0 && recentSongs.isNotEmpty()) {
+                    item {
+                        RecentPlayListItem(onClick = onPlayRecentPlaylist, count = recentSongs.size)
+                    }
+                }
+                items(filteredPlaylists, key = { it.id }) { playlist ->
                     PlaylistListItem(
                         playlist = playlist,
                         onClick = { onPlaylistClick(playlist) },
@@ -470,6 +507,40 @@ private fun PlaylistListItem(
     // Context menu
     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
         DropdownMenuItem(text = { Text("删除歌单") }, onClick = { onDelete(); showMenu = false })
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun RecentPlayCard(onClick: () -> Unit, count: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Icon(Icons.Filled.History, null, Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            Spacer(Modifier.height(8.dp))
+            Text("最近播放", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            Text("$count 首", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
+        }
+    }
+}
+
+@Composable
+private fun RecentPlayListItem(onClick: () -> Unit, count: Int) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+    ) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.History, null, Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text("最近播放", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text("$count 首", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
+            }
+        }
     }
 }
 

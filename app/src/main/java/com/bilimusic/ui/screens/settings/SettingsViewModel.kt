@@ -121,6 +121,7 @@ class SettingsViewModel @Inject constructor(
                 if (cookie.isNotBlank() && !wasLoggedIn) {
                     BilibiliApiClient.userCookie = cookie
                     loadUserInfoOnStartup(cookie)
+                    launch { autoImportBilibiliFavorites(cookie) }
                 }
             }
         }
@@ -179,6 +180,7 @@ class SettingsViewModel @Inject constructor(
         // NetEase account state
         viewModelScope.launch {
             preferences.neteaseCookie.collect { cookie ->
+                val wasLoggedIn = _uiState.value.netseaseLoggedIn
                 val loggedIn = cookie.isNotBlank()
                 _uiState.update { it.copy(netseaseLoggedIn = loggedIn) }
                 if (loggedIn) {
@@ -187,9 +189,15 @@ class SettingsViewModel @Inject constructor(
                         val resp = NeteaseApiClient.getCurrentUserAccount()
                         val profile = org.json.JSONObject(resp).optJSONObject("profile")
                         if (profile != null) {
+                            val userId = profile.optLong("userId", 0)
+                            val nickname = profile.optString("nickname", "")
+                            val avatar = profile.optString("avatarUrl", "")
                             _uiState.update {
-                                it.copy(neteaseNickname = profile.optString("nickname", ""),
-                                    neteaseAvatar = profile.optString("avatarUrl", ""))
+                                it.copy(neteaseNickname = nickname, neteaseAvatar = avatar)
+                            }
+                            preferences.setNeteaseUserId(userId)
+                            if (!wasLoggedIn) {
+                                launch { autoImportNeteasePlaylists(userId, nickname) }
                             }
                         }
                     } catch (_: Exception) {}
@@ -568,12 +576,16 @@ class SettingsViewModel @Inject constructor(
             try {
                 val videos = BilibiliApiClient.getFavoriteResources(cookie, folderId)
                 val folderName = _uiState.value.favoriteFolders.find { it.id == folderId }?.title ?: "B站收藏"
-                val playlist = Playlist(
-                    name = folderName,
-                    favoriteFolderId = folderId,
-                    favoriteFolderName = folderName
-                )
-                repository.insertPlaylist(playlist)
+                val existing = repository.getAllPlaylistsOnce().find { it.favoriteFolderId == folderId }
+                val playlist = if (existing != null) existing else {
+                    val p = Playlist(
+                        name = folderName,
+                        favoriteFolderId = folderId,
+                        favoriteFolderName = folderName
+                    )
+                    repository.insertPlaylist(p)
+                    p
+                }
                 videos.forEach { video ->
                     val music = Music(
                         id = video.bvid,
@@ -591,6 +603,30 @@ class SettingsViewModel @Inject constructor(
                 _uiState.update { it.copy(error = "导入失败: ${e.message}") }
             }
         }
+    }
+
+    private suspend fun autoImportBilibiliFavorites(cookie: String) {
+        try {
+            val uid = _uiState.value.userInfo?.uid ?: return
+            val folders = repository.getFavoriteFolders(cookie, uid)
+            val existingIds = repository.getAllPlaylistsOnce().mapNotNull { it.favoriteFolderId }.toSet()
+            folders.filter { it.id !in existingIds }.forEach { folder ->
+                importFavoriteFolder(folder.id)
+            }
+        } catch (_: Exception) {}
+    }
+
+    private suspend fun autoImportNeteasePlaylists(userId: Long, nickname: String) {
+        try {
+            val raw = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                NeteaseApiClient.getUserPlaylists(userId)
+            }
+            val playlists = com.bilimusic.data.api.netease.NeteaseSongParser.parsePlaylists(raw)
+            val existingIds = repository.getAllPlaylistsOnce().mapNotNull { it.neteasePlaylistId }.toSet()
+            playlists.filter { it.id !in existingIds }.forEach { pl ->
+                importNeteasePlaylist(pl.id)
+            }
+        } catch (_: Exception) {}
     }
 
     // ===== Sleep Timer =====
