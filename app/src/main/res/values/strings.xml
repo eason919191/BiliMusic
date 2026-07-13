@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BiliMusic</string>
+
+    <!-- ===== Navigation ===== -->
+    <string name="tab_search">搜索</string>
+    <string name="tab_playlists">歌单</string>
+    <string name="tab_downloads">下载</string>
+    <string name="tab_settings">设置</string>
+
+    <!-- ===== Player Screen ===== -->
+    <string name="player_now_playing">正在播放</string>
+    <string name="player_share">分享</string>
+    <string name="player_lyrics">歌词</string>
+    <string name="player_add_to_playlist">添加到歌单</string>
+    <string name="player_playlist">播放列表</string>
+    <string name="player_minimize">最小化</string>
+    <string name="player_cover_art">专辑封面</string>
+    <string name="player_play_mode">播放模式</string>
+    <string name="player_previous">上一首</string>
+    <string name="player_play">播放</string>
+    <string name="player_pause">暂停</string>
+    <string name="player_next">下一首</string>
+    <string name="player_download">下载</string>
+    <string name="player_lyrics_unavailable">暂无可用歌词\n（登录哔哩哔哩后可获取AI字幕）</string>
+    <string name="player_lyrics_no_subtitle">当前歌曲无字幕</string>
+    <string name="player_current_queue">当前播放 (%d)</string>
+    <string name="player_close">关闭</string>
+    <string name="player_remove">移除</string>
+    <string name="playlist_empty_hint">还没有歌单，请先去歌单页面创建</string>
+    <string name="player_no_audio">没有可播放的音频</string>
+    <string name="player_error_network">网络错误</string>
+    <string name="player_error_timeout">连接超时</string>
+    <string name="player_error_prefix">播放出错: %s</string>
+    <string name="player_error_generic">播放错误</string>
+
+    <!-- ===== Search Screen ===== -->
+    <string name="search_hint">搜索哔哩哔哩音乐/视频…</string>
+    <string name="search_no_results">没有找到相关结果，请尝试其他关键词</string>
+    <string name="search_failed_title">搜索失败</string>
+    <string name="search_error_prefix">搜索失败: %s</string>
+    <string name="search_unknown_error">未知错误，请检查网络</string>
+    <string name="search_no_audio">无法获取音频源 (可能: 版权限制 / 接口限制 / 网络问题)\nBVID: %s</string>
+    <string name="search_play_failed_title">播放失败</string>
+    <string name="search_play_error_prefix">播放失败: %s</string>
+    <string name="search_download_added">已添加到下载列表</string>
+    <string name="search_download_failed_title">下载失败</string>
+    <string name="search_download_error_prefix">下载失败: %s</string>
+    <string name="search_added_to_playlist">已添加到歌单</string>
+    <string name="search_batch_error_prefix">添加失败: %s</string>
+    <string name="search_open_in_bilibili">在哔哩哔哩App中打开</string>
+    <string name="search_batch_select">批量选择</string>
+    <string name="search_share_via">分享</string>
+    <string name="search_play_now">立即播放</string>
+    <string name="search_clear_history">清空搜索记录</string>
+    <string name="search_no_history">暂无搜索记录</string>
+
+    <!-- ===== Playlist Screen ===== -->
+    <string name="playlist_title">我的歌单</string>
+    <string name="playlist_create">创建歌单</string>
+    <string name="playlist_empty">还没有歌单</string>
+    <string name="playlist_empty_hint_create">点击右上角按钮创建</string>
+    <string name="playlist_create_dialog_title">创建歌单</string>
+    <string name="playlist_name_label">歌单名称</string>
+    <string name="playlist_desc_label">歌单描述（可选）</string>
+    <string name="playlist_create_button">创建</string>
+    <string name="playlist_cancel">取消</string>
+    <string name="playlist_song_count">%d 首</string>
+    <string name="playlist_total_minutes">%1$d首·%2$d分钟</string>
+    <string name="playlist_delete_confirm_title">删除歌单</string>
+    <string name="playlist_delete_confirm_text">确定要删除「%s」吗？歌曲不会被删除。</string>
+    <string name="playlist_delete">删除</string>
+    <string name="playlist_empty_detail">歌单为空</string>
+    <string name="playlist_selected_count">已选 %d 项</string>
+    <string name="playlist_select_all">全选</string>
+    <string name="playlist_copy_to">复制到</string>
+    <string name="playlist_move_to">移动到</string>
+    <string name="playlist_remove">移除</string>
+    <string name="playlist_play_all">播放全部</string>
+    <string name="playlist_sync_favorite">同步收藏夹</string>
+    <string name="playlist_context_menu_delete">删除歌单</string>
+    <string name="playlist_more">更多</string>
+    <string name="playlist_drag_hint">拖动排序</string>
+
+    <!-- Copy/Move dialog -->
+    <string name="playlist_copy_title">复制到歌单</string>
+    <string name="playlist_move_title">移动到歌单</string>
+    <string name="playlist_no_target">没有可用的歌单</string>
+
+    <!-- Sync dialog -->
+    <string name="playlist_sync_title">同步哔哩哔哩收藏夹</string>
+    <string name="playlist_sync_pull">从哔哩哔哩拉取</string>
+    <string name="playlist_sync_pull_desc">将收藏夹中的新视频添加到本歌单</string>
+    <string name="playlist_sync_push">推送到哔哩哔哩</string>
+    <string name="playlist_sync_push_desc">将歌单中有BV号的新歌曲添加到收藏夹</string>
+
+    <!-- ===== Downloads Screen ===== -->
+    <string name="downloads_title">下载管理</string>
+    <string name="downloads_active_count">%d 个任务进行中</string>
+    <string name="downloads_start_all">全部开始</string>
+    <string name="downloads_pause_all">全部暂停</string>
+    <string name="downloads_delete_all">全部删除</string>
+    <string name="downloads_empty">暂无下载任务</string>
+    <string name="downloads_empty_hint">在搜索结果中点击下载按钮添加</string>
+    <string name="downloads_section_active">下载中</string>
+    <string name="downloads_section_paused">已暂停</string>
+    <string name="downloads_section_completed">已完成</string>
+    <string name="downloads_section_error">下载失败</string>
+    <string name="downloads_clear_completed">清空已完成</string>
+    <string name="downloads_status_pending">等待中</string>
+    <string name="downloads_status_paused">已暂停 - %d%%</string>
+    <string name="downloads_status_completed">下载完成</string>
+    <string name="downloads_eta_remaining">剩余 %s</string>
+    <string name="downloads_pause">暂停</string>
+    <string name="downloads_resume">继续</string>
+    <string name="downloads_play">播放</string>
+    <string name="downloads_delete">删除</string>
+    <string name="downloads_play_failed">播放失败: %s</string>
+
+    <!-- ===== Settings Screen ===== -->
+    <string name="settings_title">设置</string>
+
+    <!-- Playback -->
+    <string name="settings_group_playback">播放设置</string>
+    <string name="settings_blur_title">模糊程度</string>
+    <string name="settings_progress_style">进度条样式</string>
+    <string name="settings_transition">页面过渡动画</string>
+    <string name="settings_pure_bg">纯色背景</string>
+    <string name="settings_pure_bg_desc">关闭后使用模糊背景</string>
+
+    <!-- Appearance -->
+    <string name="settings_group_appearance">外观</string>
+    <string name="settings_theme_color">主题色</string>
+    <string name="settings_dynamic_color">动态取色</string>
+    <string name="settings_dark_mode">深色模式</string>
+    <string name="settings_dark_follow">跟随系统</string>
+    <string name="settings_dark_light">浅色</string>
+    <string name="settings_dark_dark">深色</string>
+    <string name="settings_color_dialog_title">主题色设置</string>
+    <string name="settings_color_dynamic_wallpaper">动态取色（壁纸）</string>
+    <string name="settings_color_choose">选择主题色</string>
+    <string name="settings_color_done">完成</string>
+
+    <!-- Account -->
+    <string name="settings_group_account">账号管理</string>
+    <string name="settings_bili_account">哔哩哔哩账号</string>
+    <string name="settings_bili_logged_in">已登录</string>
+    <string name="settings_bili_not_logged_in">未登录</string>
+    <string name="settings_import_fav">导入收藏夹</string>
+    <string name="settings_import_fav_desc">将哔哩哔哩收藏夹导入为歌单</string>
+    <string name="settings_logout">退出登录</string>
+    <string name="settings_logout_desc">清除Cookie</string>
+
+    <!-- Music Management -->
+    <string name="settings_group_music">音乐管理</string>
+    <string name="settings_import_local">导入本地音乐</string>
+    <string name="settings_import_local_desc">扫描设备中的音乐文件</string>
+    <string name="settings_import_local_progress">导入中…</string>
+    <string name="settings_download_path">下载位置</string>
+    <string name="settings_download_path_default">Music/BiliMusic</string>
+    <string name="settings_download_path_reset">恢复默认</string>
+
+    <!-- Sleep Timer -->
+    <string name="settings_group_timer">定时关闭</string>
+    <string name="settings_timer">定时关闭</string>
+    <string name="settings_timer_off">关闭</string>
+    <string name="settings_timer_remaining">剩余 %s</string>
+    <string name="settings_timer_dialog_title">定时关闭</string>
+    <string name="settings_timer_turn_off">关闭定时</string>
+    <string name="settings_timer_custom">自定义…</string>
+    <string name="settings_timer_custom_title">自定义时间</string>
+    <string name="settings_timer_minutes">分钟</string>
+
+    <!-- Search Settings -->
+    <string name="settings_group_search">搜索</string>
+    <string name="settings_search_sort">排序方式</string>
+    <string name="settings_search_filters">搜索筛选</string>
+    <string name="settings_sort_totalrank">综合</string>
+    <string name="settings_sort_click">播放量</string>
+    <string name="settings_sort_stow">收藏数</string>
+    <string name="settings_sort_dm">弹幕数</string>
+    <string name="settings_sort_pubdate">发布日期</string>
+    <string name="settings_search_sort_dialog_title">排序方式</string>
+
+    <!-- About -->
+    <string name="settings_group_about">关于</string>
+    <string name="settings_about">关于 BiliMusic</string>
+    <string name="settings_version">v1.0.0</string>
+    <string name="about_description">这是一个用 Claude Code + Deepseek V4 做出来的音乐软件。</string>
+    <string name="about_github">GitHub 链接</string>
+    <string name="about_bilibili">哔哩哔哩主页</string>
+
+    <!-- Login Dialog -->
+    <string name="login_title">哔哩哔哩账号登录</string>
+    <string name="login_tab_qr">扫码</string>
+    <string name="login_tab_sms">短信</string>
+    <string name="login_open_app">打开哔哩哔哩App登录</string>
+    <string name="login_qr_hint">获取二维码中…</string>
+    <string name="login_web">打开哔哩哔哩网页登录</string>
+    <string name="login_web_title">哔哩哔哩登录</string>
+    <string name="login_done">已登录</string>
+    <string name="login_close">关闭</string>
+    <string name="login_captcha_hint">请完成滑块验证</string>
+    <string name="login_captcha_done">验证完成，发短信</string>
+    <string name="login_sms_sending">正在发送…</string>
+    <string name="login_sms_sent">已发送</string>
+    <string name="login_cancel">已取消</string>
+
+    <!-- Folder select -->
+    <string name="folder_select_title">选择收藏夹</string>
+    <string name="folder_no_folders">未找到收藏夹</string>
+    <string name="folder_video_count">%d 个视频</string>
+
+    <!-- Timer presets -->
+    <string name="timer_15min">15分钟</string>
+    <string name="timer_30min">30分钟</string>
+    <string name="timer_45min">45分钟</string>
+    <string name="timer_60min">60分钟</string>
+    <string name="timer_90min">90分钟</string>
+    <string name="timer_120min">120分钟</string>
+    <string name="timer_custom">自定义</string>
+
+    <!-- Transitions -->
+    <string name="transition_slide">滑动</string>
+    <string name="transition_fade">淡入淡出</string>
+    <string name="transition_scale">缩放</string>
+    <string name="transition_default">默认</string>
+    <string name="transition_dialog_title">页面过渡动画</string>
+
+    <!-- Common -->
+    <string name="common_confirm">确定</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_back">返回</string>
+    <string name="common_error">错误</string>
+
+    <!-- Notifications -->
+    <string name="notif_channel_playback_name">音乐播放</string>
+    <string name="notif_channel_playback_desc">播放控制</string>
+    <string name="notif_channel_download_name">下载</string>
+    <string name="notif_channel_download_desc">下载进度通知</string>
+
+    <!-- Progress bar styles -->
+    <string name="progress_style_linear">线性</string>
+
+    <!-- Color presets -->
+    <string name="color_default_purple">默认紫</string>
+    <string name="color_pink">粉色</string>
+    <string name="color_orange">橙色</string>
+    <string name="color_yellow">黄色</string>
+    <string name="color_green">绿色</string>
+    <string name="color_blue">蓝色</string>
+    <string name="color_cyan">青色</string>
+    <string name="color_purple">紫色</string>
+    <string name="color_grey_blue">灰蓝</string>
+    <string name="color_black_white">黑白</string>
+
+    <!-- Additional strings needed by SettingsScreen -->
+    <string name="settings_theme_custom">自定义</string>
+    <string name="login_qr_fetching">获取二维码中…</string>
+    <string name="login_qr_title">扫码登录</string>
+    <string name="login_open_web">打开哔哩哔哩网页登录</string>
+    <string name="search_filter_keywords_label">过滤词（|分隔）</string>
+
+    <!-- ===== Search history ===== -->
+    <string name="search_history_title">搜索历史</string>
+    <string name="search_clear_btn">清空</string>
+    <string name="search_searching">搜索中…</string>
+
+    <!-- Search Filters -->
+    <string name="search_filter_long">过滤超长视频</string>
+    <string name="search_filter_long_desc">默认隐藏10分钟以上的视频</string>
+    <string name="search_filter_loop">过滤"循环"标题</string>
+    <string name="search_filter_loop_desc">默认隐藏标题含"循环"的视频</string>
+    <string name="search_filter_keywords">自定义过滤词</string>
+    <string name="search_filter_keywords_hint">点击设置，用|分隔多个词</string>
+    <string name="settings_avatar">头像</string>
+
+    <!-- Widget -->
+    <string name="widget_description">音乐播放控制</string>
+</resources>

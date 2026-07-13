@@ -1,0 +1,16 @@
+{
+  "name": "bilimusic",
+  "version": "1.0.0",
+  "description": "一款基于Material Design 3设计语言的Android音乐播放器，可搜索和播放哔哩哔哩上的音乐资源。",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "gradle": "^1.2.4"
+  }
+}
